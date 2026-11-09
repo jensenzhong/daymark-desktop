@@ -110,16 +110,20 @@ body {
 .todo-actions {
   position: fixed;
   z-index: 1000;
-  width: 164px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  width: max-content;
   max-width: calc(100vw - 16px);
   color: var(--color-text);
   background: color-mix(in srgb, var(--color-panel-bg) 88%, transparent);
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
   backdrop-filter: blur(22px) saturate(1.35);
   border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent);
-  border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .23), inset 0 1px 0 rgba(255, 255, 255, .38);
-  transform-origin: top right;
+  border-radius: 13px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .17), inset 0 1px 0 rgba(255, 255, 255, .38);
+  transform-origin: right center;
   animation: glass-menu-in 240ms cubic-bezier(.2, 1.35, .4, 1) both;
 }
 
@@ -149,3 +153,16 @@ body {
 .todo-action:focus-visible {
   background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
+
+.todo-action {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.todo-action:active { transform: scale(.91); }
+.todo-action svg { width: 17px; height: 17px; }
+.todo-action-delete { color: #df4b51; }

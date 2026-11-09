@@ -57,10 +57,8 @@ export function TodoItem({
     const anchor = menuButtonRef.current.getBoundingClientRect()
     const menu = menuRef.current.getBoundingClientRect()
     const margin = 8
-    const right = anchor.right + 6
-    const left = right + menu.width <= window.innerWidth - margin
-      ? right : Math.max(margin, anchor.right - menu.width)
-    const top = Math.max(margin, Math.min(anchor.bottom + 4, window.innerHeight - menu.height - margin))
+    const left = Math.max(margin, Math.min(anchor.right - menu.width, window.innerWidth - menu.width - margin))
+    const top = Math.max(margin, Math.min(anchor.top + (anchor.height - menu.height) / 2, window.innerHeight - menu.height - margin))
     setMenuPosition({ left, top })
     menuRef.current.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
   }, [menuMounted, menuOpen])
@@ -191,22 +189,26 @@ export function TodoItem({
       </div>
 
       {menuMounted && createPortal(
-        <div ref={menuRef} className="todo-actions no-drag p-1 text-xs" data-open={menuOpen} style={{ left: menuPosition.left, top: menuPosition.top }} aria-label="Task actions" aria-hidden={!menuOpen} inert={!menuOpen}>
+        <div ref={menuRef} className="todo-actions no-drag" data-open={menuOpen} style={{ left: menuPosition.left, top: menuPosition.top }} role="group" aria-label="Task actions" aria-hidden={!menuOpen} inert={!menuOpen}>
           <button
-            className="todo-action block w-full rounded-md px-3 py-2 text-left"
+            className="todo-action"
+            aria-label={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
+            title={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
             onClick={() => {
               setMenuOpen(false)
               setReminderError(false)
               setReminderOpen((open) => !open)
             }}
           >
-            ◷ &nbsp;{todo.reminderAt ? 'Change reminder' : 'Set reminder'}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" /></svg>
           </button>
           <button
-            className="todo-action block w-full rounded-md px-3 py-2 text-left text-red-500"
+            className="todo-action todo-action-delete"
+            aria-label="Delete todo"
+            title="Delete todo"
             onClick={() => { setMenuOpen(false); onDelete(todo.id) }}
           >
-            × &nbsp;Delete
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m-8 0 1 12h8l1-12M10 10v6m4-6v6" /></svg>
           </button>
         </div>, document.body
       )}
