@@ -1,16 +1,21 @@
+import { DateNav } from './DateNav'
+
 interface TitleBarProps {
   onOpenSettings: () => void
   pinned: boolean
   onTogglePin: () => void
+  selectedDate: string
+  onChangeDate: (date: string) => void
 }
 
-export function TitleBar({ onOpenSettings, pinned, onTogglePin }: TitleBarProps) {
+export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, onChangeDate }: TitleBarProps) {
   return (
-    <div className="drag-region flex items-center justify-between px-4 py-3 shrink-0">
-      <span className="font-semibold tracking-tight" style={{ color: 'var(--color-text)' }}>
+    <div className="drag-region title-bar flex items-center px-4 py-3 shrink-0">
+      <span className="title-name font-semibold tracking-tight shrink-0" style={{ color: 'var(--color-text)' }}>
         Daymark
       </span>
-      <div className="no-drag flex items-center gap-1">
+      <DateNav selectedDate={selectedDate} onChange={onChangeDate} />
+      <div className="title-controls no-drag flex shrink-0 items-center gap-1">
         <button
           onClick={onTogglePin}
           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"

@@ -70,6 +70,14 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.title-bar { container-type: inline-size; }
+
+@container (max-width: 300px) {
+  .title-name { display: none; }
+  .title-controls { gap: 0; }
+  .title-controls button { width: 24px; }
+}
+
 .todo-input {
   /* Adaptive background: 8% of text color — looks like a subtle tint on both light and dark themes */
   background: color-mix(in srgb, var(--color-text) 8%, transparent);

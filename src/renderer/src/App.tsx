@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { TitleBar } from './components/TitleBar'
-import { DateNav } from './components/DateNav'
 import { AddTodoInput } from './components/AddTodoInput'
 import { TodoList } from './components/TodoList'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -101,8 +100,9 @@ export default function App() {
           onOpenSettings={() => setSettingsOpen(true)}
           pinned={settings?.alwaysOnTop ?? true}
           onTogglePin={() => setAlwaysOnTop(!(settings?.alwaysOnTop ?? true))}
+          selectedDate={selectedDate}
+          onChangeDate={setSelectedDate}
         />
-        <DateNav selectedDate={selectedDate} onChange={setSelectedDate} />
         <TodoList
           todos={visibleTodos}
           onToggle={toggleDone}
