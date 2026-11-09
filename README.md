@@ -47,6 +47,8 @@ npm run build:win    # 构建 Windows NSIS 安装包到 dist/
 
 GitHub Actions 在推送 `main` 和创建拉取请求时执行构建；推送 `v*` 标签时，构建成功后会上传安装包并发布 GitHub Release。具体以工作流运行结果为准。
 
+Release 页面提供 Windows 的 `.exe`，以及苹果芯片和 Intel 芯片各一份 Mac `.dmg`。页面中的 Source code 下载项由 GitHub 自动生成。应用目前没有内置自动更新，安装新版本需要手动下载安装包。
+
 ## 数据与备份
 
 待办和设置使用 JSON 文件保存在 Electron 的用户数据目录。Windows 默认路径通常为：
@@ -70,6 +72,17 @@ build/             应用图标
 ```
 
 技术栈：Electron、electron-vite、React、TypeScript、Tailwind CSS 和 Zustand。
+
+仓库根目录中其余文件的用途：
+
+| 文件 | 作用 |
+| --- | --- |
+| `package.json`、`package-lock.json` | 项目命令、依赖与锁定版本；`npm ci` 需要锁文件 |
+| `electron.vite.config.ts`、`electron-builder.yml` | 分别配置开发构建和安装包打包 |
+| `tsconfig*.json` | 分别检查 Electron 主进程和界面代码 |
+| `.gitignore`、`.gitattributes` | 排除生成文件、统一文本和图片的 Git 处理方式 |
+| `scripts/` | 应用图标的生成脚本，可通过 `npm run generate:icon` 使用 |
+| `LICENSE` | 原项目的 MIT 许可和版权信息 |
 
 ## 许可证
 
