@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { Todo } from '@shared/types'
+import { ReminderCountdown } from './ReminderCountdown'
 
 interface TodoItemProps {
   todo: Todo
@@ -250,7 +251,7 @@ export function TodoItem({
       )}
 
       {todo.reminderAt && !reminderOpen && (
-        <div className="ml-6 flex items-center gap-2 text-xs" style={{ color: 'var(--color-accent)' }}>
+        <div className="ml-6 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs" style={{ color: 'var(--color-accent)' }}>
           <span>
             ◷ Reminder · {new Date(todo.reminderAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
@@ -262,6 +263,7 @@ export function TodoItem({
           >
             ×
           </button>
+          <ReminderCountdown reminderAt={todo.reminderAt} />
         </div>
       )}
     </li>
