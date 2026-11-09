@@ -102,6 +102,7 @@ export default function App() {
           onTogglePin={() => setAlwaysOnTop(!(settings?.alwaysOnTop ?? true))}
           selectedDate={selectedDate}
           onChangeDate={setSelectedDate}
+          todoDates={todos.map((todo) => todo.date)}
         />
         <TodoList
           todos={visibleTodos}

@@ -194,3 +194,38 @@ body {
   background: color-mix(in srgb, #df6656 14%, transparent);
   border-color: color-mix(in srgb, #df6656 28%, transparent);
 }
+
+.calendar-popover {
+  position: fixed;
+  z-index: 1001;
+  width: min(320px, calc(100vw - 16px));
+  overflow-y: auto;
+  padding: 14px;
+  border-radius: 20px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-panel-bg) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .22), inset 0 1px rgba(255, 255, 255, .35);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  animation: glass-menu-in 220ms cubic-bezier(.2, 1.25, .4, 1) both;
+}
+
+.calendar-top, .calendar-navigation { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.calendar-title { font-size: 14px; font-weight: 650; }
+.calendar-switch { display: flex; padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.calendar-switch button, .calendar-today { padding: 4px 9px; border-radius: 7px; font-size: 12px; }
+.calendar-switch button[aria-pressed='true'] { background: var(--color-panel-bg); box-shadow: 0 1px 4px rgba(0, 0, 0, .14); }
+.calendar-today { color: var(--color-accent); }
+.calendar-navigation { margin: 10px 0 6px; font-size: 13px; font-weight: 600; }
+.calendar-navigation button { width: 30px; height: 28px; border-radius: 8px; font-size: 20px; line-height: 1; }
+.calendar-navigation button:hover, .calendar-today:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; }
+.calendar-weekdays { color: var(--color-text-muted); font-size: 11px; padding: 4px 0; }
+.calendar-day { position: relative; display: grid; place-items: center; justify-self: center; width: 34px; max-width: 100%; height: 34px; border-radius: 11px; font-size: 12px; }
+.calendar-day:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.calendar-day[data-outside='true'] { color: var(--color-text-muted); opacity: .55; }
+.calendar-day[data-today='true'] { font-weight: 700; color: var(--color-accent); }
+.calendar-day[data-selected='true'] { color: white; background: var(--color-accent); opacity: 1; }
+.calendar-dot { position: absolute; top: 3px; left: 50%; width: 5px; height: 5px; transform: translateX(-50%); border-radius: 50%; background: #ef625c; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-panel-bg) 75%, transparent); }
+@media (prefers-reduced-motion: reduce) { .calendar-popover { animation-duration: 1ms; } }
