@@ -36,6 +36,7 @@ export function TodoItem({
   const [draft, setDraft] = useState(todo.text)
   const [reminderOpen, setReminderOpen] = useState(false)
   const [reminderError, setReminderError] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const commit = (): void => {
     const trimmed = draft.trim()
@@ -54,7 +55,16 @@ export function TodoItem({
 
   return (
     <li
-      className={`group flex flex-col gap-1 px-3 py-1.5 rounded-lg hover:bg-white/5 ${isDropTarget ? 'bg-white/10' : ''}`}
+      className={`group flex flex-col gap-1 pl-3 pr-1 py-1.5 rounded-lg hover:bg-white/5 ${isDropTarget ? 'bg-white/10' : ''}`}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setMenuOpen(false)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && menuOpen) {
+          setMenuOpen(false)
+          e.currentTarget.querySelector<HTMLButtonElement>('[data-todo-menu]')?.focus()
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault()
         onDragOver(todo.id)
@@ -119,25 +129,38 @@ export function TodoItem({
           </span>
         )}
         <button
-          onClick={() => {
-            setReminderError(false)
-            setReminderOpen((open) => !open)
-          }}
+          data-todo-menu
+          onClick={() => setMenuOpen((open) => !open)}
           className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 shrink-0 leading-none"
-          style={{ color: todo.reminderAt ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
-          aria-label={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
-          title={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
+          style={{ color: 'var(--color-text-muted)' }}
+          aria-label="Task actions"
+          aria-expanded={menuOpen}
+          title="Task actions"
         >
-          ◷
-        </button>
-        <button
-          onClick={() => onDelete(todo.id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/10 shrink-0 leading-none"
-          aria-label="Delete todo"
-        >
-          ×
+          ⋯
         </button>
       </div>
+
+      {menuOpen && (
+        <div className="todo-actions self-end rounded-lg p-1 text-xs" aria-label="Task actions">
+          <button
+            className="todo-action block w-full rounded-md px-3 py-2 text-left"
+            onClick={() => {
+              setMenuOpen(false)
+              setReminderError(false)
+              setReminderOpen((open) => !open)
+            }}
+          >
+            ◷ &nbsp;{todo.reminderAt ? 'Change reminder' : 'Set reminder'}
+          </button>
+          <button
+            className="todo-action block w-full rounded-md px-3 py-2 text-left text-red-500"
+            onClick={() => { setMenuOpen(false); onDelete(todo.id) }}
+          >
+            × &nbsp;Delete
+          </button>
+        </div>
+      )}
 
       {reminderOpen && (
         <div className="ml-6 flex flex-col gap-1">
@@ -178,7 +201,7 @@ export function TodoItem({
       {todo.reminderAt && !reminderOpen && (
         <div className="ml-6 flex items-center gap-2 text-xs" style={{ color: 'var(--color-accent)' }}>
           <span>
-            Reminder · {new Date(todo.reminderAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            ◷ Reminder · {new Date(todo.reminderAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
           <button
             onClick={() => onSetReminder(todo.id, null)}
