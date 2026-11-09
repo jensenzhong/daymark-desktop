@@ -6,6 +6,7 @@ import { isQuitting } from './appState'
 
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 480
+const MAX_WIDTH = 720
 const sizingStates = new WeakMap<
   BrowserWindow,
   { autoHeight: boolean; lastHeight: number; programmaticHeight: number | null }
@@ -14,7 +15,7 @@ const sizingStates = new WeakMap<
 function clampToVisibleArea(bounds: WindowBounds): WindowBounds {
   const display = screen.getDisplayMatching(bounds)
   const area = display.workArea
-  const width = Math.min(bounds.width, area.width)
+  const width = Math.min(bounds.width, area.width, MAX_WIDTH)
   const height = Math.min(bounds.height, area.height)
   const x = Math.min(Math.max(bounds.x, area.x), area.x + area.width - width)
   const y = Math.min(Math.max(bounds.y, area.y), area.y + area.height - height)
@@ -30,7 +31,18 @@ function initialBounds(): WindowBounds {
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT
   }
-  return clampToVisibleArea(settings.windowBounds ?? fallback)
+  const savedBounds = settings.windowBounds
+  const hadRunawayWidth = Boolean(savedBounds && savedBounds.width > MAX_WIDTH)
+  const bounds = clampToVisibleArea(
+    savedBounds
+      ? { ...savedBounds, width: hadRunawayWidth ? DEFAULT_WIDTH : savedBounds.width }
+      : fallback
+  )
+
+  // Recover from a previously persisted accidental horizontal resize.
+  if (hadRunawayWidth) setAutoHeight(true)
+  writeWindowBounds(bounds)
+  return bounds
 }
 
 export function createWidgetWindow(): BrowserWindow {
@@ -39,6 +51,7 @@ export function createWidgetWindow(): BrowserWindow {
   const win = new BrowserWindow({
     ...bounds,
     minWidth: 180,
+    maxWidth: MAX_WIDTH,
     minHeight: 140,
     frame: false,
     transparent: true,
