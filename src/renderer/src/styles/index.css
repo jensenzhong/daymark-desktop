@@ -108,10 +108,41 @@ body {
 }
 
 .todo-actions {
-  min-width: 140px;
+  position: fixed;
+  z-index: 1000;
+  width: 164px;
+  max-width: calc(100vw - 16px);
   color: var(--color-text);
-  background: var(--color-panel-bg);
-  border: 1px solid color-mix(in srgb, var(--color-text) 16%, transparent);
+  background: color-mix(in srgb, var(--color-panel-bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  backdrop-filter: blur(22px) saturate(1.35);
+  border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .23), inset 0 1px 0 rgba(255, 255, 255, .38);
+  transform-origin: top right;
+  animation: glass-menu-in 240ms cubic-bezier(.2, 1.35, .4, 1) both;
+}
+
+.todo-actions[data-open='false'] {
+  pointer-events: none;
+  animation: glass-menu-out 140ms ease-in both;
+}
+
+@keyframes glass-menu-in {
+  from { opacity: 0; transform: translate(5px, -4px) scale(.88); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes glass-menu-out {
+  to { opacity: 0; transform: translate(3px, -2px) scale(.94); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .todo-actions, .todo-actions[data-open='false'] { animation-duration: 1ms; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .todo-actions { background: var(--color-panel-bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
 .todo-action:hover,

@@ -1,4 +1,5 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { Todo } from '@shared/types'
 
 interface TodoItemProps {
@@ -37,6 +38,63 @@ export function TodoItem({
   const [reminderOpen, setReminderOpen] = useState(false)
   const [reminderError, setReminderError] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuMounted, setMenuMounted] = useState(false)
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 })
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (menuOpen) {
+      setMenuMounted(true)
+      return
+    }
+    const timer = window.setTimeout(() => setMenuMounted(false), 140)
+    return () => window.clearTimeout(timer)
+  }, [menuOpen])
+
+  useLayoutEffect(() => {
+    if (!menuMounted || !menuOpen || !menuButtonRef.current || !menuRef.current) return
+    const anchor = menuButtonRef.current.getBoundingClientRect()
+    const menu = menuRef.current.getBoundingClientRect()
+    const margin = 8
+    const right = anchor.right + 6
+    const left = right + menu.width <= window.innerWidth - margin
+      ? right : Math.max(margin, anchor.right - menu.width)
+    const top = Math.max(margin, Math.min(anchor.bottom + 4, window.innerHeight - menu.height - margin))
+    setMenuPosition({ left, top })
+    menuRef.current.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
+  }, [menuMounted, menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const dismiss = (event: PointerEvent): void => {
+      const target = event.target as Node
+      if (!menuRef.current?.contains(target) && !menuButtonRef.current?.contains(target)) setMenuOpen(false)
+    }
+    const handleKey = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    const handleFocus = (event: FocusEvent): void => {
+      const target = event.target as Node
+      if (!menuRef.current?.contains(target) && !menuButtonRef.current?.contains(target)) setMenuOpen(false)
+    }
+    const close = (): void => setMenuOpen(false)
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', handleKey)
+    document.addEventListener('focusin', handleFocus)
+    document.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('keydown', handleKey)
+      document.removeEventListener('focusin', handleFocus)
+      document.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [menuOpen])
 
   const commit = (): void => {
     const trimmed = draft.trim()
@@ -56,15 +114,6 @@ export function TodoItem({
   return (
     <li
       className={`group flex flex-col gap-1 pl-3 pr-1 py-1.5 rounded-lg hover:bg-white/5 ${isDropTarget ? 'bg-white/10' : ''}`}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setMenuOpen(false)
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape' && menuOpen) {
-          setMenuOpen(false)
-          e.currentTarget.querySelector<HTMLButtonElement>('[data-todo-menu]')?.focus()
-        }
-      }}
       onDragOver={(e) => {
         e.preventDefault()
         onDragOver(todo.id)
@@ -129,7 +178,7 @@ export function TodoItem({
           </span>
         )}
         <button
-          data-todo-menu
+          ref={menuButtonRef}
           onClick={() => setMenuOpen((open) => !open)}
           className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 shrink-0 leading-none"
           style={{ color: 'var(--color-text-muted)' }}
@@ -141,8 +190,8 @@ export function TodoItem({
         </button>
       </div>
 
-      {menuOpen && (
-        <div className="todo-actions self-end rounded-lg p-1 text-xs" aria-label="Task actions">
+      {menuMounted && createPortal(
+        <div ref={menuRef} className="todo-actions no-drag p-1 text-xs" data-open={menuOpen} style={{ left: menuPosition.left, top: menuPosition.top }} aria-label="Task actions" aria-hidden={!menuOpen} inert={!menuOpen}>
           <button
             className="todo-action block w-full rounded-md px-3 py-2 text-left"
             onClick={() => {
@@ -159,7 +208,7 @@ export function TodoItem({
           >
             × &nbsp;Delete
           </button>
-        </div>
+        </div>, document.body
       )}
 
       {reminderOpen && (
