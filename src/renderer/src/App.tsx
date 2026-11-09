@@ -30,6 +30,13 @@ export default function App() {
   const shellRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--max-list-height',
+      `${Math.max(80, window.screen.availHeight - 180)}px`
+    )
+  }, [])
+
+  useEffect(() => {
     loadTodos()
     loadSettings()
     return window.api.todos.onChanged(() => loadTodos())

@@ -50,8 +50,8 @@ body {
 
 .app-shell.auto-height .todo-scroll {
   flex: 0 0 auto;
-  max-height: none;
-  overflow-y: visible;
+  max-height: var(--max-list-height, 700px);
+  overflow-y: auto;
 }
 
 .app-shell.auto-height .todo-content-empty {
