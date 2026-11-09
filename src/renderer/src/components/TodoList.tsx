@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Todo } from '@shared/types'
 import { TodoItem } from './TodoItem'
 
@@ -7,13 +8,17 @@ interface TodoListProps {
   onEdit: (id: string, text: string) => void
   onDelete: (id: string) => void
   onSetReminder: (id: string, reminderAt: number | null) => void
+  onReorder: (ids: string[]) => void
 }
 
-export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder }: TodoListProps) {
+export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder, onReorder }: TodoListProps) {
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+
   if (todos.length === 0) {
     return (
       <div
-        className="flex-1 flex items-center justify-center px-6 text-center text-sm"
+        className="todo-content-empty flex-1 flex items-center justify-center px-6 text-center text-sm"
         style={{ color: 'var(--color-text-muted)' }}
       >
         Nothing here yet. Add your first todo below.
@@ -21,10 +26,26 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder }: T
     )
   }
 
-  const sorted = [...todos].sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1
-    return a.order - b.order
-  })
+  const sorted = [...todos].sort((a, b) => a.order - b.order)
+
+  const dropOn = (targetId: string): void => {
+    if (!draggingId || draggingId === targetId) {
+      setDraggingId(null)
+      setDragOverId(null)
+      return
+    }
+
+    const reordered = [...sorted]
+    const sourceIndex = reordered.findIndex((todo) => todo.id === draggingId)
+    const targetIndex = reordered.findIndex((todo) => todo.id === targetId)
+    if (sourceIndex >= 0 && targetIndex >= 0) {
+      const [moved] = reordered.splice(sourceIndex, 1)
+      reordered.splice(targetIndex, 0, moved)
+      onReorder(reordered.map((todo) => todo.id))
+    }
+    setDraggingId(null)
+    setDragOverId(null)
+  }
 
   return (
     <ul className="todo-scroll no-drag flex-1 overflow-y-auto px-2 py-1">
@@ -36,6 +57,14 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder }: T
           onEdit={onEdit}
           onDelete={onDelete}
           onSetReminder={onSetReminder}
+          onDragStart={setDraggingId}
+          onDragEnd={() => {
+            setDraggingId(null)
+            setDragOverId(null)
+          }}
+          onDragOver={setDragOverId}
+          onDrop={dropOn}
+          isDropTarget={dragOverId === todo.id && draggingId !== todo.id}
         />
       ))}
     </ul>

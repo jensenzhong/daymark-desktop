@@ -9,8 +9,11 @@ A modern, theme-able desktop To-Do widget for Windows and macOS. It floats above
 
 - Add, edit, delete, and complete todos
 - Today view with a date switcher to peek at other days
-- Frameless, draggable, always-on-top widget — controlled from a tray icon (no taskbar/dock clutter)
-- Four built-in themes (Light Glass, Dark Glass, Minimal Light, Minimal Dark) plus a fully custom theme editor (accent color, background color/opacity, blur, corner radius, font size)
+- Incomplete todos automatically roll forward to the next day; completed todos stay on their original date
+- Set a silent reminder on a todo; a centered, always-on-top prompt stays open until acknowledged
+- Drag todos by the handle to save a custom order; paste a numbered or paragraph list to add several todos at once
+- Frameless widget with adjustable always-on-top pin, content-following height, and adjustable background opacity
+- Five built-in themes, including a Claude-inspired coral palette, plus a custom theme editor
 - Fully local — todos and settings are stored on your machine, no account or sync required
 
 ## Development

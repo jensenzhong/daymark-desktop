@@ -32,6 +32,9 @@ export interface Settings {
   themeId: string
   customTheme: ThemeConfig
   windowBounds: WindowBounds | null
+  backgroundOpacity?: number | null
+  alwaysOnTop?: boolean
+  autoHeight?: boolean
 }
 
 export type TodoPatch = Partial<Pick<Todo, 'text' | 'date' | 'order' | 'reminderAt'>>
@@ -42,6 +45,7 @@ export interface TodoApi {
   update: (id: string, patch: TodoPatch) => Promise<Todo[]>
   toggleDone: (id: string) => Promise<Todo[]>
   remove: (id: string) => Promise<Todo[]>
+  reorder: (ids: string[]) => Promise<Todo[]>
   onChanged: (callback: () => void) => () => void
 }
 
@@ -49,12 +53,16 @@ export interface SettingsApi {
   get: () => Promise<Settings>
   setTheme: (themeId: string) => Promise<Settings>
   setCustomTheme: (theme: ThemeConfig) => Promise<Settings>
+  setBackgroundOpacity: (opacity: number | null) => Promise<Settings>
+  setAlwaysOnTop: (pinned: boolean) => Promise<Settings>
 }
 
 export interface WindowApi {
   hide: () => void
   quit: () => void
   acknowledgeReminder: (id: string) => Promise<boolean>
+  setContentHeight: (height: number) => void
+  onAutoHeightChanged: (callback: (enabled: boolean) => void) => () => void
 }
 
 export interface Api {

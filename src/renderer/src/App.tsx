@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TitleBar } from './components/TitleBar'
 import { DateNav } from './components/DateNav'
 import { AddTodoInput } from './components/AddTodoInput'
@@ -17,18 +17,54 @@ export default function App() {
   const updateTodo = useTodoStore((s) => s.update)
   const toggleDone = useTodoStore((s) => s.toggleDone)
   const removeTodo = useTodoStore((s) => s.remove)
+  const reorderTodos = useTodoStore((s) => s.reorder)
 
   const loadSettings = useSettingsStore((s) => s.load)
+  const settings = useSettingsStore((s) => s.settings)
+  const setAlwaysOnTop = useSettingsStore((s) => s.setAlwaysOnTop)
   const settingsLoaded = useSettingsStore((s) => s.loaded)
 
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [autoHeight, setAutoHeight] = useState(true)
+  const shellRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadTodos()
     loadSettings()
     return window.api.todos.onChanged(() => loadTodos())
   }, [loadTodos, loadSettings])
+
+  useEffect(() => {
+    if (settingsLoaded) setAutoHeight(settings?.autoHeight ?? true)
+  }, [settingsLoaded, settings?.autoHeight])
+
+  useEffect(() => window.api.window.onAutoHeightChanged(setAutoHeight), [])
+
+  useEffect(() => {
+    if (!autoHeight || !settingsLoaded) return
+    const shell = shellRef.current
+    if (!shell) return
+
+    const updateWindowHeight = (): void => {
+      window.api.window.setContentHeight(Math.ceil(shell.getBoundingClientRect().height))
+    }
+    const observer = new ResizeObserver(updateWindowHeight)
+    observer.observe(shell)
+    updateWindowHeight()
+    return () => observer.disconnect()
+  }, [autoHeight, settingsLoaded])
+
+  useEffect(() => {
+    let observedToday = todayKey()
+    const timer = setInterval(() => {
+      const today = todayKey()
+      if (today === observedToday) return
+      observedToday = today
+      setSelectedDate(today)
+    }, 30_000)
+    return () => clearInterval(timer)
+  }, [])
 
   const params = new URLSearchParams(window.location.search)
   if (params.get('reminder') === '1') {
@@ -47,8 +83,12 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div className="app-shell relative">
-        <TitleBar onOpenSettings={() => setSettingsOpen(true)} />
+      <div ref={shellRef} className={`app-shell relative ${autoHeight ? 'auto-height' : 'manual-height'}`}>
+        <TitleBar
+          onOpenSettings={() => setSettingsOpen(true)}
+          pinned={settings?.alwaysOnTop ?? true}
+          onTogglePin={() => setAlwaysOnTop(!(settings?.alwaysOnTop ?? true))}
+        />
         <DateNav selectedDate={selectedDate} onChange={setSelectedDate} />
         <TodoList
           todos={visibleTodos}
@@ -56,6 +96,7 @@ export default function App() {
           onEdit={(id, text) => updateTodo(id, { text })}
           onDelete={removeTodo}
           onSetReminder={(id, reminderAt) => updateTodo(id, { reminderAt })}
+          onReorder={(ids) => reorderTodos(ids)}
         />
         <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} />
         {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}

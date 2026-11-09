@@ -9,6 +9,7 @@ interface TodoState {
   update: (id: string, patch: TodoPatch) => Promise<void>
   toggleDone: (id: string) => Promise<void>
   remove: (id: string) => Promise<void>
+  reorder: (ids: string[]) => Promise<void>
 }
 
 export const useTodoStore = create<TodoState>((set) => ({
@@ -32,6 +33,10 @@ export const useTodoStore = create<TodoState>((set) => ({
   },
   remove: async (id) => {
     const todos = await window.api.todos.remove(id)
+    set({ todos })
+  },
+  reorder: async (ids) => {
+    const todos = await window.api.todos.reorder(ids)
     set({ todos })
   }
 }))

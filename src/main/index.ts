@@ -4,6 +4,7 @@ import { createTray } from './tray'
 import { registerIpcHandlers } from './ipc'
 import { markQuitting } from './appState'
 import { startReminderScheduler } from './reminders'
+import { startDailyRollover } from './dailyRollover'
 
 let mainWindow: BrowserWindow | null = null
 let tray: ReturnType<typeof createTray> | null = null
@@ -16,6 +17,7 @@ app.whenReady().then(() => {
   app.setAppUserModelId('com.daymark.app')
 
   registerIpcHandlers(getWindow)
+  startDailyRollover()
 
   mainWindow = createWidgetWindow()
   mainWindow.on('closed', () => {

@@ -70,6 +70,35 @@ export function deleteTodo(id: string): Todo[] {
   return todos
 }
 
+export function reorderTodos(ids: string[]): Todo[] {
+  const orderById = new Map(ids.map((id, order) => [id, order]))
+  const todos = readTodos().map((todo) =>
+    orderById.has(todo.id) ? { ...todo, order: orderById.get(todo.id)! } : todo
+  )
+  writeTodos(todos)
+  return todos
+}
+
+export function rolloverIncompleteTodos(today: string): Todo[] {
+  const todos = readTodos()
+  const overdue = todos
+    .filter((todo) => !todo.done && todo.date < today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order)
+
+  if (overdue.length === 0) return todos
+
+  const currentDayOrders = todos.filter((todo) => todo.date === today).map((todo) => todo.order)
+  let nextOrder = currentDayOrders.length > 0 ? Math.max(...currentDayOrders) + 1 : 0
+  const overdueIds = new Set(overdue.map((todo) => todo.id))
+  const rolled = todos.map((todo) => {
+    if (!overdueIds.has(todo.id)) return todo
+    return { ...todo, date: today, order: nextOrder++ }
+  })
+
+  writeTodos(rolled)
+  return rolled
+}
+
 // -- Settings --
 
 function defaultSettings(): Settings {
@@ -77,12 +106,26 @@ function defaultSettings(): Settings {
   return {
     themeId: DEFAULT_THEME_ID,
     customTheme: { ...base, id: 'custom', name: 'Custom' },
-    windowBounds: null
+    windowBounds: null,
+    alwaysOnTop: true,
+    autoHeight: true,
+    backgroundOpacity: null
   }
 }
 
 export function readSettings(): Settings {
-  return readJson<Settings>(settingsPath(), defaultSettings())
+  const defaults = defaultSettings()
+  const saved = readJson<Partial<Settings> | null>(settingsPath(), null)
+  if (!saved) return defaults
+  return {
+    ...defaults,
+    ...saved,
+    customTheme: saved.customTheme ?? defaults.customTheme,
+    windowBounds: saved.windowBounds ?? null,
+    alwaysOnTop: saved.alwaysOnTop ?? true,
+    autoHeight: saved.autoHeight ?? true,
+    backgroundOpacity: saved.backgroundOpacity ?? null
+  }
 }
 
 function writeSettings(settings: Settings): void {
@@ -100,6 +143,27 @@ export function setCustomTheme(theme: ThemeConfig): Settings {
   const settings = readSettings()
   settings.customTheme = theme
   settings.themeId = 'custom'
+  writeSettings(settings)
+  return settings
+}
+
+export function setBackgroundOpacity(opacity: number | null): Settings {
+  const settings = readSettings()
+  settings.backgroundOpacity = opacity
+  writeSettings(settings)
+  return settings
+}
+
+export function setAlwaysOnTop(pinned: boolean): Settings {
+  const settings = readSettings()
+  settings.alwaysOnTop = pinned
+  writeSettings(settings)
+  return settings
+}
+
+export function setAutoHeight(enabled: boolean): Settings {
+  const settings = readSettings()
+  settings.autoHeight = enabled
   writeSettings(settings)
   return settings
 }

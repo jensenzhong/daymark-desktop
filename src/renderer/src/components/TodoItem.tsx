@@ -7,6 +7,11 @@ interface TodoItemProps {
   onEdit: (id: string, text: string) => void
   onDelete: (id: string) => void
   onSetReminder: (id: string, reminderAt: number | null) => void
+  onDragStart: (id: string) => void
+  onDragEnd: () => void
+  onDragOver: (id: string) => void
+  onDrop: (id: string) => void
+  isDropTarget: boolean
 }
 
 function toLocalDateTimeInput(timestamp: number): string {
@@ -15,7 +20,18 @@ function toLocalDateTimeInput(timestamp: number): string {
   return date.toISOString().slice(0, 16)
 }
 
-export function TodoItem({ todo, onToggle, onEdit, onDelete, onSetReminder }: TodoItemProps) {
+export function TodoItem({
+  todo,
+  onToggle,
+  onEdit,
+  onDelete,
+  onSetReminder,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  isDropTarget
+}: TodoItemProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
   const [reminderOpen, setReminderOpen] = useState(false)
@@ -37,7 +53,17 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete, onSetReminder }: To
   }
 
   return (
-    <li className="group flex flex-col gap-1 px-3 py-1.5 rounded-lg hover:bg-white/5">
+    <li
+      className={`group flex flex-col gap-1 px-3 py-1.5 rounded-lg hover:bg-white/5 ${isDropTarget ? 'bg-white/10' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        onDragOver(todo.id)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        onDrop(todo.id)
+      }}
+    >
       <div className="flex items-start gap-2">
         <input
           type="checkbox"
@@ -46,6 +72,21 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete, onSetReminder }: To
           className="checkbox w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
           aria-label={todo.done ? 'Mark as not done' : 'Mark as done'}
         />
+        <button
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/plain', todo.id)
+            onDragStart(todo.id)
+          }}
+          onDragEnd={onDragEnd}
+          className="w-4 h-5 -ml-1 shrink-0 cursor-grab active:cursor-grabbing text-xs leading-none"
+          style={{ color: 'var(--color-text-muted)' }}
+          aria-label="Drag to reorder"
+          title="Drag to reorder"
+        >
+          ⠿
+        </button>
         {editing ? (
           <input
             autoFocus

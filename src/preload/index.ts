@@ -8,6 +8,7 @@ const api: Api = {
     update: (id: string, patch: TodoPatch) => ipcRenderer.invoke('todos:update', id, patch),
     toggleDone: (id: string) => ipcRenderer.invoke('todos:toggleDone', id),
     remove: (id: string) => ipcRenderer.invoke('todos:delete', id),
+    reorder: (ids: string[]) => ipcRenderer.invoke('todos:reorder', ids),
     onChanged: (callback: () => void) => {
       const listener = (): void => callback()
       ipcRenderer.on('todos:changed', listener)
@@ -17,12 +18,21 @@ const api: Api = {
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     setTheme: (themeId: string) => ipcRenderer.invoke('settings:setTheme', themeId),
-    setCustomTheme: (theme: ThemeConfig) => ipcRenderer.invoke('settings:setCustomTheme', theme)
+    setCustomTheme: (theme: ThemeConfig) => ipcRenderer.invoke('settings:setCustomTheme', theme),
+    setBackgroundOpacity: (opacity: number | null) =>
+      ipcRenderer.invoke('settings:setBackgroundOpacity', opacity),
+    setAlwaysOnTop: (pinned: boolean) => ipcRenderer.invoke('settings:setAlwaysOnTop', pinned)
   },
   window: {
     hide: () => ipcRenderer.send('window:hide'),
     quit: () => ipcRenderer.send('window:quit'),
-    acknowledgeReminder: (id: string) => ipcRenderer.invoke('reminder:acknowledge', id)
+    acknowledgeReminder: (id: string) => ipcRenderer.invoke('reminder:acknowledge', id),
+    setContentHeight: (height: number) => ipcRenderer.send('window:setContentHeight', height),
+    onAutoHeightChanged: (callback: (enabled: boolean) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, enabled: boolean): void => callback(enabled)
+      ipcRenderer.on('window:autoHeight', listener)
+      return () => ipcRenderer.removeListener('window:autoHeight', listener)
+    }
   }
 }
 

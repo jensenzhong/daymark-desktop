@@ -11,6 +11,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const settings = useSettingsStore((s) => s.settings)
   const setTheme = useSettingsStore((s) => s.setTheme)
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme)
+  const setBackgroundOpacity = useSettingsStore((s) => s.setBackgroundOpacity)
 
   if (!settings) return null
 
@@ -80,6 +81,32 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
         </div>
 
+        <div>
+          <div className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <span>Widget opacity</span>
+            <span>{Math.round((settings.backgroundOpacity ?? bg.a) * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min={0.15}
+            max={1}
+            step={0.05}
+            value={settings.backgroundOpacity ?? bg.a}
+            onChange={(e) => setBackgroundOpacity(parseFloat(e.target.value))}
+            className="w-full mt-1"
+            aria-label="Widget opacity"
+          />
+          {settings.backgroundOpacity != null && (
+            <button
+              onClick={() => setBackgroundOpacity(null)}
+              className="mt-1 text-xs hover:underline"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Use theme default
+            </button>
+          )}
+        </div>
+
         {isCustom && (
           <div className="space-y-4">
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
@@ -102,19 +129,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   updateCustom({ background: toRgba(r, g, b, bg.a) })
                 }}
                 className="block w-full h-8 mt-1 rounded-md bg-transparent cursor-pointer"
-              />
-            </label>
-
-            <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Background opacity ({Math.round(bg.a * 100)}%)
-              <input
-                type="range"
-                min={0.1}
-                max={1}
-                step={0.05}
-                value={bg.a}
-                onChange={(e) => updateCustom({ background: toRgba(bg.r, bg.g, bg.b, parseFloat(e.target.value)) })}
-                className="w-full mt-1"
               />
             </label>
 

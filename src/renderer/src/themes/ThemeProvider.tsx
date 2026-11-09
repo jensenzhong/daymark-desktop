@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { resolveTheme } from '@shared/themePresets'
-import { parseRgba } from '../lib/color'
+import { parseRgba, toRgba } from '../lib/color'
 import { useSettingsStore } from '../store/useSettingsStore'
 
 interface ThemeProviderProps {
@@ -14,9 +14,16 @@ export function ThemeProvider({ children }: ThemeProviderProps): ReactNode {
     if (!settings) return
     const theme = resolveTheme(settings.themeId, settings.customTheme)
     const root = document.documentElement.style
-    root.setProperty('--color-bg', theme.background)
+    const themeBackground = parseRgba(theme.background)
+    const background = toRgba(
+      themeBackground.r,
+      themeBackground.g,
+      themeBackground.b,
+      settings.backgroundOpacity ?? themeBackground.a
+    )
+    root.setProperty('--color-bg', background)
     // Solid version of the background (alpha → 0.97) for opaque panels like Settings
-    const { r, g, b } = parseRgba(theme.background)
+    const { r, g, b } = themeBackground
     root.setProperty('--color-panel-bg', `rgba(${r}, ${g}, ${b}, 0.97)`)
     root.setProperty('--blur', `${theme.blur}px`)
     root.setProperty('--color-accent', theme.accent)

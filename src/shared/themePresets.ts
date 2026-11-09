@@ -50,6 +50,18 @@ export const THEME_PRESETS: ThemeConfig[] = [
     radius: 10,
     fontSize: 14,
     fontFamily: FONT_STACK
+  },
+  {
+    id: 'claude-coral',
+    name: 'Claude Coral',
+    background: 'rgba(255, 239, 233, 0.96)',
+    blur: 18,
+    accent: '#e6755d',
+    text: '#352a27',
+    textMuted: '#806861',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
   }
 ]
 

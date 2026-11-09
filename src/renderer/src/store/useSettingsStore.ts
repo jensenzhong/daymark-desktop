@@ -7,6 +7,8 @@ interface SettingsState {
   load: () => Promise<void>
   setTheme: (themeId: string) => Promise<void>
   setCustomTheme: (theme: ThemeConfig) => Promise<void>
+  setBackgroundOpacity: (opacity: number | null) => Promise<void>
+  setAlwaysOnTop: (pinned: boolean) => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -22,6 +24,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
   setCustomTheme: async (theme) => {
     const settings = await window.api.settings.setCustomTheme(theme)
+    set({ settings })
+  },
+  setBackgroundOpacity: async (opacity) => {
+    const settings = await window.api.settings.setBackgroundOpacity(opacity)
+    set({ settings })
+  },
+  setAlwaysOnTop: async (pinned) => {
+    const settings = await window.api.settings.setAlwaysOnTop(pinned)
     set({ settings })
   }
 }))

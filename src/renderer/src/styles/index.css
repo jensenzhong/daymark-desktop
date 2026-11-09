@@ -44,6 +44,21 @@ body {
     border-radius 0.2s ease;
 }
 
+.app-shell.auto-height {
+  height: max-content;
+  max-height: 100vh;
+}
+
+.app-shell.auto-height .todo-scroll {
+  flex: 0 0 auto;
+  max-height: calc(100vh - 150px);
+}
+
+.app-shell.auto-height .todo-content-empty {
+  flex: 0 0 auto;
+  min-height: 88px;
+}
+
 .drag-region {
   -webkit-app-region: drag;
 }
