@@ -39,6 +39,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     getWindow()?.setAlwaysOnTop(pinned, 'floating')
     return settings
   })
+  ipcMain.handle('settings:setAutoHeight', (_e, enabled: boolean) => {
+    const settings = store.setAutoHeight(enabled)
+    setWidgetAutoHeight(getWindow(), enabled)
+    getWindow()?.webContents.send('window:autoHeight', enabled)
+    return settings
+  })
 
   ipcMain.on('window:hide', () => getWindow()?.hide())
   ipcMain.on('window:setContentHeight', (_e, height: number) => {

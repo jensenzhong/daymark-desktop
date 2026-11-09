@@ -21,7 +21,8 @@ const api: Api = {
     setCustomTheme: (theme: ThemeConfig) => ipcRenderer.invoke('settings:setCustomTheme', theme),
     setBackgroundOpacity: (opacity: number | null) =>
       ipcRenderer.invoke('settings:setBackgroundOpacity', opacity),
-    setAlwaysOnTop: (pinned: boolean) => ipcRenderer.invoke('settings:setAlwaysOnTop', pinned)
+    setAlwaysOnTop: (pinned: boolean) => ipcRenderer.invoke('settings:setAlwaysOnTop', pinned),
+    setAutoHeight: (enabled: boolean) => ipcRenderer.invoke('settings:setAutoHeight', enabled)
   },
   window: {
     hide: () => ipcRenderer.send('window:hide'),

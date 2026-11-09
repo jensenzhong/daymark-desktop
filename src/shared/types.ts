@@ -55,6 +55,7 @@ export interface SettingsApi {
   setCustomTheme: (theme: ThemeConfig) => Promise<Settings>
   setBackgroundOpacity: (opacity: number | null) => Promise<Settings>
   setAlwaysOnTop: (pinned: boolean) => Promise<Settings>
+  setAutoHeight: (enabled: boolean) => Promise<Settings>
 }
 
 export interface WindowApi {

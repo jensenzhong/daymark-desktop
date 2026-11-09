@@ -12,6 +12,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setTheme = useSettingsStore((s) => s.setTheme)
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme)
   const setBackgroundOpacity = useSettingsStore((s) => s.setBackgroundOpacity)
+  const setAutoHeight = useSettingsStore((s) => s.setAutoHeight)
 
   if (!settings) return null
 
@@ -106,6 +107,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </button>
           )}
         </div>
+
+        <label className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <span>Auto-fit height to task list</span>
+          <input
+            type="checkbox"
+            checked={settings.autoHeight ?? true}
+            onChange={(e) => setAutoHeight(e.target.checked)}
+            className="checkbox h-4 w-4 cursor-pointer"
+          />
+        </label>
 
         {isCustom && (
           <div className="space-y-4">

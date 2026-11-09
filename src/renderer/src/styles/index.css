@@ -56,7 +56,7 @@ body {
 
 .app-shell.auto-height .todo-content-empty {
   flex: 0 0 auto;
-  min-height: 88px;
+  min-height: 56px;
 }
 
 .drag-region {

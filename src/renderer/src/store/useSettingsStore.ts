@@ -9,6 +9,7 @@ interface SettingsState {
   setCustomTheme: (theme: ThemeConfig) => Promise<void>
   setBackgroundOpacity: (opacity: number | null) => Promise<void>
   setAlwaysOnTop: (pinned: boolean) => Promise<void>
+  setAutoHeight: (enabled: boolean) => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -32,6 +33,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
   setAlwaysOnTop: async (pinned) => {
     const settings = await window.api.settings.setAlwaysOnTop(pinned)
+    set({ settings })
+  },
+  setAutoHeight: async (enabled) => {
+    const settings = await window.api.settings.setAutoHeight(enabled)
     set({ settings })
   }
 }))

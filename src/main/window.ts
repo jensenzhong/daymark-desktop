@@ -39,7 +39,7 @@ export function createWidgetWindow(): BrowserWindow {
   const win = new BrowserWindow({
     ...bounds,
     minWidth: 180,
-    minHeight: 190,
+    minHeight: 140,
     frame: false,
     transparent: true,
     hasShadow: false,
@@ -108,7 +108,7 @@ export function setWidgetContentHeight(win: BrowserWindow, requestedHeight: numb
 
   const bounds = win.getBounds()
   const workArea = screen.getDisplayMatching(bounds).workArea
-  const height = Math.min(Math.max(Math.ceil(requestedHeight), 190), workArea.height)
+  const height = Math.min(Math.max(Math.ceil(requestedHeight), 140), workArea.height)
   if (height === bounds.height) return
 
   const y = Math.min(bounds.y, workArea.y + workArea.height - height)
