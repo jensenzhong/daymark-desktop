@@ -34,8 +34,8 @@ export function createWidgetWindow(): BrowserWindow {
 
   const win = new BrowserWindow({
     ...bounds,
-    minWidth: 260,
-    minHeight: 320,
+    minWidth: 180,
+    minHeight: 190,
     frame: false,
     transparent: true,
     hasShadow: false,

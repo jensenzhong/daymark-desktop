@@ -28,12 +28,12 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
   }
 
   return (
-    <li className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5">
+    <li className="group flex items-start gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5">
       <input
         type="checkbox"
         checked={todo.done}
         onChange={() => onToggle(todo.id)}
-        className="checkbox w-4 h-4 shrink-0 cursor-pointer"
+        className="checkbox w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
         aria-label={todo.done ? 'Mark as not done' : 'Mark as done'}
       />
       {editing ? (
@@ -49,7 +49,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
       ) : (
         <span
           onClick={() => setEditing(true)}
-          className="flex-1 text-sm cursor-text truncate min-w-0"
+          className="flex-1 text-sm cursor-text min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]"
           style={{
             color: todo.done ? 'var(--color-text-muted)' : 'var(--color-text)',
             textDecoration: todo.done ? 'line-through' : 'none'
