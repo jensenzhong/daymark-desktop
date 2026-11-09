@@ -46,12 +46,12 @@ body {
 
 .app-shell.auto-height {
   height: max-content;
-  max-height: 100vh;
 }
 
 .app-shell.auto-height .todo-scroll {
   flex: 0 0 auto;
-  max-height: calc(100vh - 150px);
+  max-height: none;
+  overflow-y: visible;
 }
 
 .app-shell.auto-height .todo-content-empty {

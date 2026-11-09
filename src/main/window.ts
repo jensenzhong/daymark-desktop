@@ -1,23 +1,24 @@
 import { BrowserWindow, app, screen } from 'electron'
 import { join } from 'path'
 import type { WindowBounds } from '../shared/types'
-import { readSettings, setAutoHeight, writeWindowBounds } from './store'
+import { readSettings, writeWindowBounds } from './store'
 import { isQuitting } from './appState'
 
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 480
-const MAX_WIDTH = 720
 const sizingStates = new WeakMap<
   BrowserWindow,
-  { autoHeight: boolean; lastHeight: number; programmaticHeight: number | null }
+  { autoHeight: boolean; lastRequestedHeight: number | null }
 >()
 
 function clampToVisibleArea(bounds: WindowBounds): WindowBounds {
   const display = screen.getDisplayMatching(bounds)
   const area = display.workArea
-  const width = Math.min(bounds.width, area.width, MAX_WIDTH)
+  const width = bounds.width
   const height = Math.min(bounds.height, area.height)
-  const x = Math.min(Math.max(bounds.x, area.x), area.x + area.width - width)
+  const x = width <= area.width
+    ? Math.min(Math.max(bounds.x, area.x), area.x + area.width - width)
+    : bounds.x
   const y = Math.min(Math.max(bounds.y, area.y), area.y + area.height - height)
   return { x, y, width, height }
 }
@@ -32,15 +33,7 @@ function initialBounds(): WindowBounds {
     height: DEFAULT_HEIGHT
   }
   const savedBounds = settings.windowBounds
-  const hadRunawayWidth = Boolean(savedBounds && savedBounds.width > MAX_WIDTH)
-  const bounds = clampToVisibleArea(
-    savedBounds
-      ? { ...savedBounds, width: hadRunawayWidth ? DEFAULT_WIDTH : savedBounds.width }
-      : fallback
-  )
-
-  // Recover from a previously persisted accidental horizontal resize.
-  if (hadRunawayWidth) setAutoHeight(true)
+  const bounds = clampToVisibleArea(savedBounds ?? fallback)
   writeWindowBounds(bounds)
   return bounds
 }
@@ -51,7 +44,6 @@ export function createWidgetWindow(): BrowserWindow {
   const win = new BrowserWindow({
     ...bounds,
     minWidth: 180,
-    maxWidth: MAX_WIDTH,
     minHeight: 140,
     frame: false,
     transparent: true,
@@ -69,8 +61,7 @@ export function createWidgetWindow(): BrowserWindow {
   })
   const sizingState = {
     autoHeight: readSettings().autoHeight ?? true,
-    lastHeight: bounds.height,
-    programmaticHeight: null as number | null
+    lastRequestedHeight: null as number | null
   }
   sizingStates.set(win, sizingState)
 
@@ -79,23 +70,8 @@ export function createWidgetWindow(): BrowserWindow {
 
   const persistBounds = (): void => writeWindowBounds(win.getBounds())
   win.on('moved', persistBounds)
-  win.on('resized', () => {
-    const height = win.getBounds().height
-    if (
-      sizingState.autoHeight &&
-      height !== sizingState.lastHeight &&
-      height !== sizingState.programmaticHeight
-    ) {
-      sizingState.autoHeight = false
-      sizingState.programmaticHeight = null
-      setAutoHeight(false)
-      win.webContents.send('window:autoHeight', false)
-    } else if (height === sizingState.programmaticHeight) {
-      sizingState.programmaticHeight = null
-    }
-    sizingState.lastHeight = height
-    persistBounds()
-  })
+  win.on('will-resize', () => { sizingState.lastRequestedHeight = null })
+  win.on('resized', persistBounds)
   win.on('close', (e) => {
     // Tray-managed lifecycle: closing hides instead of quitting unless we're actually quitting.
     if (!isQuitting()) {
@@ -122,15 +98,20 @@ export function setWidgetContentHeight(win: BrowserWindow, requestedHeight: numb
   const bounds = win.getBounds()
   const workArea = screen.getDisplayMatching(bounds).workArea
   const height = Math.min(Math.max(Math.ceil(requestedHeight), 140), workArea.height)
-  if (height === bounds.height) return
+  // Windows can round window dimensions by a pixel at fractional display scales.
+  // Do not retry the same target indefinitely when the OS rounds the result.
+  if (Math.abs(height - bounds.height) <= 2 || sizingState.lastRequestedHeight === height) return
+  sizingState.lastRequestedHeight = height
 
-  const y = Math.min(bounds.y, workArea.y + workArea.height - height)
-  sizingState.programmaticHeight = height
-  win.setBounds({ ...bounds, y, height })
+  // Auto-fit changes only height. Keep the width and position the user chose.
+  win.setSize(bounds.width, height)
 }
 
 export function setWidgetAutoHeight(win: BrowserWindow | null, enabled: boolean): void {
   if (!win) return
   const sizingState = sizingStates.get(win)
-  if (sizingState) sizingState.autoHeight = enabled
+  if (sizingState) {
+    sizingState.autoHeight = enabled
+    sizingState.lastRequestedHeight = null
+  }
 }

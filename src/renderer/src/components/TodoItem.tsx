@@ -77,6 +77,15 @@ export function TodoItem({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = 'move'
             e.dataTransfer.setData('text/plain', todo.id)
+            const item = e.currentTarget.closest('li')
+            if (item) {
+              const rect = item.getBoundingClientRect()
+              e.dataTransfer.setDragImage(
+                item,
+                Math.max(0, Math.min(e.clientX - rect.left, rect.width)),
+                Math.max(0, Math.min(e.clientY - rect.top, rect.height))
+              )
+            }
             onDragStart(todo.id)
           }}
           onDragEnd={onDragEnd}
