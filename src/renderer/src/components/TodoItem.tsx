@@ -251,13 +251,13 @@ export function TodoItem({
       )}
 
       {todo.reminderAt && !reminderOpen && (
-        <div className="ml-6 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs" style={{ color: 'var(--color-accent)' }}>
-          <span>
-            ◷ Reminder · {new Date(todo.reminderAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        <div className="reminder-line ml-6 flex min-w-0 items-center gap-1 text-xs" style={{ color: 'var(--color-accent)' }}>
+          <span className="min-w-0 truncate" title={new Date(todo.reminderAt).toLocaleString()}>
+            ◷ {new Date(todo.reminderAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}
           </span>
           <button
             onClick={() => onSetReminder(todo.id, null)}
-            className="rounded px-1 hover:bg-white/10"
+            className="shrink-0 rounded px-1 hover:bg-white/10"
             aria-label="Remove reminder"
             title="Remove reminder"
           >
