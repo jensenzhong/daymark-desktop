@@ -6,9 +6,10 @@ interface TodoListProps {
   onToggle: (id: string) => void
   onEdit: (id: string, text: string) => void
   onDelete: (id: string) => void
+  onSetReminder: (id: string, reminderAt: number | null) => void
 }
 
-export function TodoList({ todos, onToggle, onEdit, onDelete }: TodoListProps) {
+export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div
@@ -28,7 +29,14 @@ export function TodoList({ todos, onToggle, onEdit, onDelete }: TodoListProps) {
   return (
     <ul className="todo-scroll no-drag flex-1 overflow-y-auto px-2 py-1">
       {sorted.map((todo) => (
-        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} />
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onToggle={onToggle}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onSetReminder={onSetReminder}
+        />
       ))}
     </ul>
   )

@@ -5,6 +5,7 @@ export interface Todo {
   date: string // 'YYYY-MM-DD'
   createdAt: number
   order: number
+  reminderAt?: number | null
 }
 
 export interface ThemeConfig {
@@ -33,7 +34,7 @@ export interface Settings {
   windowBounds: WindowBounds | null
 }
 
-export type TodoPatch = Partial<Pick<Todo, 'text' | 'date' | 'order'>>
+export type TodoPatch = Partial<Pick<Todo, 'text' | 'date' | 'order' | 'reminderAt'>>
 
 export interface TodoApi {
   getAll: () => Promise<Todo[]>
@@ -41,6 +42,7 @@ export interface TodoApi {
   update: (id: string, patch: TodoPatch) => Promise<Todo[]>
   toggleDone: (id: string) => Promise<Todo[]>
   remove: (id: string) => Promise<Todo[]>
+  onChanged: (callback: () => void) => () => void
 }
 
 export interface SettingsApi {
@@ -52,6 +54,7 @@ export interface SettingsApi {
 export interface WindowApi {
   hide: () => void
   quit: () => void
+  acknowledgeReminder: (id: string) => Promise<boolean>
 }
 
 export interface Api {

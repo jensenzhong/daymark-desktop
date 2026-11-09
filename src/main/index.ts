@@ -3,6 +3,7 @@ import { createWidgetWindow } from './window'
 import { createTray } from './tray'
 import { registerIpcHandlers } from './ipc'
 import { markQuitting } from './appState'
+import { startReminderScheduler } from './reminders'
 
 let mainWindow: BrowserWindow | null = null
 let tray: ReturnType<typeof createTray> | null = null
@@ -22,6 +23,7 @@ app.whenReady().then(() => {
   })
 
   tray = createTray(getWindow)
+  startReminderScheduler()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

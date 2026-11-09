@@ -2,6 +2,7 @@ import { BrowserWindow, app, ipcMain } from 'electron'
 import type { ThemeConfig, TodoPatch } from '../shared/types'
 import * as store from './store'
 import { markQuitting } from './appState'
+import { dismissActiveReminder } from './reminders'
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('todos:getAll', () => store.readTodos())
@@ -9,6 +10,13 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   ipcMain.handle('todos:update', (_e, id: string, patch: TodoPatch) => store.updateTodo(id, patch))
   ipcMain.handle('todos:toggleDone', (_e, id: string) => store.toggleTodoDone(id))
   ipcMain.handle('todos:delete', (_e, id: string) => store.deleteTodo(id))
+
+  ipcMain.handle('reminder:acknowledge', (_e, id: string) => {
+    store.updateTodo(id, { reminderAt: null })
+    getWindow()?.webContents.send('todos:changed')
+    dismissActiveReminder(id)
+    return true
+  })
 
   ipcMain.handle('settings:get', () => store.readSettings())
   ipcMain.handle('settings:setTheme', (_e, themeId: string) => store.setTheme(themeId))

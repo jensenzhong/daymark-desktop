@@ -7,7 +7,12 @@ const api: Api = {
     add: (text: string, date: string) => ipcRenderer.invoke('todos:add', text, date),
     update: (id: string, patch: TodoPatch) => ipcRenderer.invoke('todos:update', id, patch),
     toggleDone: (id: string) => ipcRenderer.invoke('todos:toggleDone', id),
-    remove: (id: string) => ipcRenderer.invoke('todos:delete', id)
+    remove: (id: string) => ipcRenderer.invoke('todos:delete', id),
+    onChanged: (callback: () => void) => {
+      const listener = (): void => callback()
+      ipcRenderer.on('todos:changed', listener)
+      return () => ipcRenderer.removeListener('todos:changed', listener)
+    }
   },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
@@ -16,7 +21,8 @@ const api: Api = {
   },
   window: {
     hide: () => ipcRenderer.send('window:hide'),
-    quit: () => ipcRenderer.send('window:quit')
+    quit: () => ipcRenderer.send('window:quit'),
+    acknowledgeReminder: (id: string) => ipcRenderer.invoke('reminder:acknowledge', id)
   }
 }
 

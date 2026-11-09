@@ -55,7 +55,11 @@ export function updateTodo(id: string, patch: TodoPatch): Todo[] {
 }
 
 export function toggleTodoDone(id: string): Todo[] {
-  const todos = readTodos().map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+  const todos = readTodos().map((t) =>
+    t.id === id
+      ? { ...t, done: !t.done, reminderAt: !t.done ? null : t.reminderAt }
+      : t
+  )
   writeTodos(todos)
   return todos
 }

@@ -8,6 +8,7 @@ import { ThemeProvider } from './themes/ThemeProvider'
 import { useTodoStore } from './store/useTodoStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { todayKey } from './lib/date'
+import { ReminderDialog } from './components/ReminderDialog'
 
 export default function App() {
   const todos = useTodoStore((s) => s.todos)
@@ -26,7 +27,19 @@ export default function App() {
   useEffect(() => {
     loadTodos()
     loadSettings()
+    return window.api.todos.onChanged(() => loadTodos())
   }, [loadTodos, loadSettings])
+
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('reminder') === '1') {
+    return (
+      <ReminderDialog
+        id={params.get('id') ?? ''}
+        text={params.get('text') ?? 'A scheduled task is due.'}
+        reminderAt={Number(params.get('at'))}
+      />
+    )
+  }
 
   if (!settingsLoaded) return null
 
@@ -42,6 +55,7 @@ export default function App() {
           onToggle={toggleDone}
           onEdit={(id, text) => updateTodo(id, { text })}
           onDelete={removeTodo}
+          onSetReminder={(id, reminderAt) => updateTodo(id, { reminderAt })}
         />
         <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} />
         {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
