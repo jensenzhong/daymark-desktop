@@ -29,6 +29,9 @@ const api: Api = {
     quit: () => ipcRenderer.send('window:quit'),
     acknowledgeReminder: (id: string) => ipcRenderer.invoke('reminder:acknowledge', id),
     setContentHeight: (height: number) => ipcRenderer.send('window:setContentHeight', height),
+    beginResize: (x, y) => ipcRenderer.send('window:beginResize', x, y),
+    resizeTo: (x, y) => ipcRenderer.send('window:resizeTo', x, y),
+    endResize: () => ipcRenderer.send('window:endResize'),
     onAutoHeightChanged: (callback: (enabled: boolean) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, enabled: boolean): void => callback(enabled)
       ipcRenderer.on('window:autoHeight', listener)

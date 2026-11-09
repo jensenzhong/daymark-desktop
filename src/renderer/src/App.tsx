@@ -30,13 +30,6 @@ export default function App() {
   const shellRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      '--max-list-height',
-      `${Math.max(80, window.screen.availHeight - 180)}px`
-    )
-  }, [])
-
-  useEffect(() => {
     loadTodos()
     loadSettings()
     return window.api.todos.onChanged(() => loadTodos())
@@ -46,7 +39,12 @@ export default function App() {
     if (settingsLoaded) setAutoHeight(settings?.autoHeight ?? true)
   }, [settingsLoaded, settings?.autoHeight])
 
-  useEffect(() => window.api.window.onAutoHeightChanged(setAutoHeight), [])
+  useEffect(() => window.api.window.onAutoHeightChanged((enabled) => {
+    setAutoHeight(enabled)
+    useSettingsStore.setState((state) => ({
+      settings: state.settings ? { ...state.settings, autoHeight: enabled } : state.settings
+    }))
+  }), [])
 
   useEffect(() => {
     if (!autoHeight || !settingsLoaded) return
@@ -54,13 +52,21 @@ export default function App() {
     if (!shell) return
 
     const updateWindowHeight = (): void => {
-      window.api.window.setContentHeight(Math.ceil(shell.getBoundingClientRect().height))
+      const list = shell.querySelector<HTMLElement>('.todo-scroll, .todo-content-empty')
+      if (!list) return
+      const listHeight = list.classList.contains('todo-content-empty') ? 56 : list.scrollHeight
+      window.api.window.setContentHeight(Math.ceil(shell.clientHeight - list.clientHeight + listHeight + 2))
     }
     const observer = new ResizeObserver(updateWindowHeight)
+    const list = shell.querySelector<HTMLElement>('.todo-scroll, .todo-content-empty')
     observer.observe(shell)
+    if (list) {
+      observer.observe(list)
+      Array.from(list.children).forEach((child) => observer.observe(child))
+    }
     updateWindowHeight()
     return () => observer.disconnect()
-  }, [autoHeight, settingsLoaded])
+  }, [autoHeight, settingsLoaded, todos, selectedDate])
 
   useEffect(() => {
     let observedToday = todayKey()
@@ -106,6 +112,21 @@ export default function App() {
           onReorder={(ids) => reorderTodos(ids)}
         />
         <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} />
+        <div
+          className="resize-grip"
+          title="Drag to resize"
+          aria-label="Resize window"
+          onPointerDown={(e) => {
+            if (e.button !== 0) return
+            e.currentTarget.setPointerCapture(e.pointerId)
+            window.api.window.beginResize(e.screenX, e.screenY)
+          }}
+          onPointerMove={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) window.api.window.resizeTo(e.screenX, e.screenY)
+          }}
+          onPointerUp={() => window.api.window.endResize()}
+          onPointerCancel={() => window.api.window.endResize()}
+        />
         {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
       </div>
     </ThemeProvider>

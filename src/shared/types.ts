@@ -63,6 +63,9 @@ export interface WindowApi {
   quit: () => void
   acknowledgeReminder: (id: string) => Promise<boolean>
   setContentHeight: (height: number) => void
+  beginResize: (x: number, y: number) => void
+  resizeTo: (x: number, y: number) => void
+  endResize: () => void
   onAutoHeightChanged: (callback: (enabled: boolean) => void) => () => void
 }
 

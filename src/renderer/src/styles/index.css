@@ -44,19 +44,22 @@ body {
     border-radius 0.2s ease;
 }
 
-.app-shell.auto-height {
-  height: max-content;
+.app-shell .todo-scroll,
+.app-shell .todo-content-empty {
+  min-height: 0;
 }
 
-.app-shell.auto-height .todo-scroll {
-  flex: 0 0 auto;
-  max-height: var(--max-list-height, 700px);
-  overflow-y: auto;
-}
-
-.app-shell.auto-height .todo-content-empty {
-  flex: 0 0 auto;
-  min-height: 56px;
+.resize-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  cursor: nwse-resize;
+  touch-action: none;
+  -webkit-app-region: no-drag;
+  background: linear-gradient(135deg, transparent 58%, var(--color-text-muted) 59%, transparent 63%, transparent 70%, var(--color-text-muted) 71%, transparent 75%);
+  opacity: .65;
 }
 
 .drag-region {

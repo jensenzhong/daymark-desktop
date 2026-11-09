@@ -6,6 +6,7 @@ import { dismissActiveReminder } from './reminders'
 import { setWidgetAutoHeight, setWidgetContentHeight } from './window'
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
+  let resizeStart: { x: number; y: number; width: number; height: number } | null = null
   ipcMain.handle('todos:getAll', () => store.readTodos())
   ipcMain.handle('todos:add', (_e, text: string, date: string) => {
     const todos = store.addTodo(text, date)
@@ -47,6 +48,24 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   })
 
   ipcMain.on('window:hide', () => getWindow()?.hide())
+  ipcMain.on('window:beginResize', (_e, x: number, y: number) => {
+    const win = getWindow()
+    if (!win || !Number.isFinite(x) || !Number.isFinite(y)) return
+    const { width, height } = win.getBounds()
+    resizeStart = { x, y, width, height }
+  })
+  ipcMain.on('window:resizeTo', (_e, x: number, y: number) => {
+    const win = getWindow()
+    if (!win || !resizeStart || !Number.isFinite(x) || !Number.isFinite(y)) return
+    const deltaY = y - resizeStart.y
+    if (Math.abs(deltaY) > 2 && (store.readSettings().autoHeight ?? true)) {
+      store.setAutoHeight(false)
+      setWidgetAutoHeight(win, false)
+      win.webContents.send('window:autoHeight', false)
+    }
+    win.setSize(Math.max(180, Math.round(resizeStart.width + x - resizeStart.x)), Math.max(140, Math.round(resizeStart.height + deltaY)))
+  })
+  ipcMain.on('window:endResize', () => { resizeStart = null })
   ipcMain.on('window:setContentHeight', (_e, height: number) => {
     const win = getWindow()
     if (win) setWidgetContentHeight(win, height)

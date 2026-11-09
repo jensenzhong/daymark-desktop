@@ -1,7 +1,7 @@
 import { BrowserWindow, app, screen } from 'electron'
 import { join } from 'path'
 import type { WindowBounds } from '../shared/types'
-import { readSettings, writeWindowBounds } from './store'
+import { readSettings, setAutoHeight, writeWindowBounds } from './store'
 import { isQuitting } from './appState'
 
 const DEFAULT_WIDTH = 320
@@ -70,7 +70,14 @@ export function createWidgetWindow(): BrowserWindow {
 
   const persistBounds = (): void => writeWindowBounds(win.getBounds())
   win.on('moved', persistBounds)
-  win.on('will-resize', () => { sizingState.lastRequestedHeight = null })
+  win.on('will-resize', (_event, nextBounds) => {
+    sizingState.lastRequestedHeight = null
+    if (sizingState.autoHeight && Math.abs(nextBounds.height - win.getBounds().height) > 2) {
+      sizingState.autoHeight = false
+      setAutoHeight(false)
+      win.webContents.send('window:autoHeight', false)
+    }
+  })
   win.on('resized', persistBounds)
   win.on('close', (e) => {
     // Tray-managed lifecycle: closing hides instead of quitting unless we're actually quitting.
