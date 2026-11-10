@@ -22,6 +22,7 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
   let handle: BrowserWindow | null = null
   let handleReady = false
   let closeTimer: ReturnType<typeof setTimeout> | null = null
+  let timer: ReturnType<typeof setInterval> | null = null
 
   const motion = (direction: 'open' | 'close'): void => {
     if (!win.isDestroyed()) win.webContents.send('window:drawerMotion', direction)
@@ -106,7 +107,7 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
   }
   win.on('show', onShow)
 
-  const timer = setInterval(() => {
+  const poll = (): void => {
     if (!enabled || win.isDestroyed()) return
     const point = screen.getCursorScreenPoint()
     if (!win.isVisible()) {
@@ -146,11 +147,12 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
       outsideSince = 0
       showHandle()
     }, ANIMATION_MS)
-  }, POLL_INTERVAL)
+  }
 
   return {
     enable: () => {
       enabled = true
+      if (!timer) timer = setInterval(poll, POLL_INTERVAL)
       outsideSince = 0
       graceUntil = Date.now() + OPEN_GRACE
       dock()
@@ -159,6 +161,8 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
     },
     disable: () => {
       enabled = false
+      if (timer) clearInterval(timer)
+      timer = null
       outsideSince = 0
       cancelClose()
       if (handle && !handle.isDestroyed()) handle.hide()
@@ -166,7 +170,8 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
     },
     dispose: () => {
       enabled = false
-      clearInterval(timer)
+      if (timer) clearInterval(timer)
+      timer = null
       if (closeTimer) clearTimeout(closeTimer)
       win.removeListener('show', onShow)
       if (handle && !handle.isDestroyed()) handle.destroy()

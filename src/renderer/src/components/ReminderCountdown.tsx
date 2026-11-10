@@ -21,9 +21,26 @@ export function ReminderCountdown({ reminderAt }: { reminderAt: number }) {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
-    setNow(Date.now())
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
+    let timer: number | undefined
+    const update = (): void => {
+      window.clearTimeout(timer)
+      const current = Date.now()
+      setNow(current)
+      if (document.hidden) return
+      const remaining = reminderAt - current
+      if (remaining <= 0) return
+      const interval = remaining <= 60_000 ? 1000 : 60_000
+      let delay = remaining % interval || interval
+      if (remaining > 60_000) delay = Math.min(delay, remaining - 60_000)
+      if (remaining > 15 * 60_000) delay = Math.min(delay, remaining - 15 * 60_000)
+      timer = window.setTimeout(update, Math.max(25, delay))
+    }
+    update()
+    document.addEventListener('visibilitychange', update)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', update)
+    }
   }, [reminderAt])
 
   const remaining = reminderAt - now

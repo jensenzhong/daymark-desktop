@@ -1,12 +1,14 @@
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, powerMonitor, screen } from 'electron'
 import { join } from 'path'
 import type { Todo } from '../shared/types'
-import { readTodos } from './store'
+import { onTodosChanged, readTodos } from './store'
 import { getIconPath } from './icon'
 
 let reminderWindow: BrowserWindow | null = null
 let activeReminderId: string | null = null
-let scheduler: ReturnType<typeof setInterval> | null = null
+let scheduler: ReturnType<typeof setTimeout> | null = null
+let schedulerStarted = false
+const CLOCK_CHECK_MS = 60_000
 
 function showReminder(todo: Todo): void {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
@@ -49,9 +51,13 @@ function showReminder(todo: Todo): void {
     reminderWindow?.show()
     reminderWindow?.focus()
   })
-  reminderWindow.on('closed', () => {
-    reminderWindow = null
-    activeReminderId = null
+  const currentWindow = reminderWindow
+  currentWindow.on('closed', () => {
+    if (reminderWindow === currentWindow) {
+      reminderWindow = null
+      activeReminderId = null
+      scheduleReminders()
+    }
   })
 
   const query = {
@@ -70,21 +76,31 @@ function showReminder(todo: Todo): void {
   }
 }
 
-function showNextDueReminder(): void {
+function scheduleReminders(todos = readTodos()): void {
+  if (scheduler) clearTimeout(scheduler)
+  scheduler = null
   if (reminderWindow && !reminderWindow.isDestroyed()) return
 
-  const now = Date.now()
-  const due = readTodos()
-    .filter((todo) => !todo.done && todo.reminderAt != null && todo.reminderAt <= now)
+  const next = todos
+    .filter((todo) => !todo.done && todo.reminderAt != null && Number.isFinite(todo.reminderAt))
     .sort((a, b) => (a.reminderAt ?? 0) - (b.reminderAt ?? 0))[0]
+  if (!next || next.reminderAt == null) return
 
-  if (due) showReminder(due)
+  const delay = next.reminderAt - Date.now()
+  if (delay <= 0) {
+    showReminder(next)
+    return
+  }
+  // Periodically re-check the wall clock, so manual clock changes cannot delay reminders indefinitely.
+  scheduler = setTimeout(() => scheduleReminders(), Math.min(delay, CLOCK_CHECK_MS))
 }
 
 export function startReminderScheduler(): void {
-  if (scheduler) return
-  showNextDueReminder()
-  scheduler = setInterval(showNextDueReminder, 1000)
+  if (schedulerStarted) return
+  schedulerStarted = true
+  onTodosChanged(scheduleReminders)
+  powerMonitor.on('resume', () => scheduleReminders())
+  scheduleReminders()
 }
 
 export function dismissActiveReminder(id: string): void {
@@ -93,5 +109,5 @@ export function dismissActiveReminder(id: string): void {
   reminderWindow = null
   activeReminderId = null
   currentWindow?.destroy()
-  showNextDueReminder()
+  scheduleReminders()
 }

@@ -34,8 +34,16 @@ export function readTodos(): Todo[] {
   return readJson<Todo[]>(todosPath(), [])
 }
 
+const todoListeners = new Set<(todos: Todo[]) => void>()
+
+export function onTodosChanged(listener: (todos: Todo[]) => void): () => void {
+  todoListeners.add(listener)
+  return () => todoListeners.delete(listener)
+}
+
 function writeTodos(todos: Todo[]): void {
   writeJson(todosPath(), todos)
+  for (const listener of todoListeners) listener(todos)
 }
 
 export function addTodo(text: string, date: string): Todo[] {
