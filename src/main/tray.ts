@@ -1,13 +1,9 @@
 import { BrowserWindow, Menu, Tray, app, nativeImage } from 'electron'
-import { join } from 'path'
 import { markQuitting } from './appState'
+import { getIconPath } from './icon'
 
 export function createTray(getWindow: () => BrowserWindow | null): Tray {
-  const iconPath = app.isPackaged
-    ? join(process.resourcesPath, 'build', 'icon.png')
-    : join(__dirname, '../../build/icon.png')
-
-  const baseIcon = nativeImage.createFromPath(iconPath)
+  const baseIcon = nativeImage.createFromPath(getIconPath())
   const trayIcon = baseIcon.isEmpty() ? baseIcon : baseIcon.resize({ width: 22, height: 22 })
   const tray = new Tray(trayIcon)
   tray.setToolTip('Daymark')

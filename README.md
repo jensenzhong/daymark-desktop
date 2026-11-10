@@ -81,7 +81,7 @@ build/             应用图标
 | `electron.vite.config.ts`、`electron-builder.yml` | 分别配置开发构建和安装包打包 |
 | `tsconfig*.json` | 分别检查 Electron 主进程和界面代码 |
 | `.gitignore`、`.gitattributes` | 排除生成文件、统一文本和图片的 Git 处理方式 |
-| `scripts/` | 应用图标的生成脚本，可通过 `npm run generate:icon` 使用 |
+| `build/icon.png` | 应用、托盘及安装包使用的图标 |
 | `LICENSE` | 原项目的 MIT 许可和版权信息 |
 
 ## 许可证

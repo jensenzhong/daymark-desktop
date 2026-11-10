@@ -3,6 +3,7 @@ import { join } from 'path'
 import type { WindowBounds } from '../shared/types'
 import { readSettings, setAutoHeight, writeWindowBounds } from './store'
 import { isQuitting } from './appState'
+import { getIconPath } from './icon'
 
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 480
@@ -43,6 +44,7 @@ export function createWidgetWindow(): BrowserWindow {
 
   const win = new BrowserWindow({
     ...bounds,
+    icon: getIconPath(),
     minWidth: 180,
     minHeight: 140,
     frame: false,

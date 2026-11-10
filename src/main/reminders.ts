@@ -2,6 +2,7 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import type { Todo } from '../shared/types'
 import { readTodos } from './store'
+import { getIconPath } from './icon'
 
 let reminderWindow: BrowserWindow | null = null
 let activeReminderId: string | null = null
@@ -15,6 +16,7 @@ function showReminder(todo: Todo): void {
 
   activeReminderId = todo.id
   reminderWindow = new BrowserWindow({
+    icon: getIconPath(),
     x: Math.round(x + (width - windowWidth) / 2),
     y: Math.round(y + (height - windowHeight) / 2),
     width: windowWidth,
