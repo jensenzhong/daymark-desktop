@@ -33,7 +33,6 @@ const api: Api = {
     beginResize: (x, y) => ipcRenderer.send('window:beginResize', x, y),
     resizeTo: (x, y) => ipcRenderer.send('window:resizeTo', x, y),
     endResize: () => ipcRenderer.send('window:endResize'),
-    setEditing: (editing: boolean) => ipcRenderer.send('window:setEditing', editing),
     onDrawerMotion: (callback: (motion: 'open' | 'close') => void) => {
       const listener = (_event: Electron.IpcRendererEvent, motion: 'open' | 'close'): void => callback(motion)
       ipcRenderer.on('window:drawerMotion', listener)

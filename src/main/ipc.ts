@@ -3,7 +3,7 @@ import type { DisplayMode, ThemeConfig, TodoPatch } from '../shared/types'
 import * as store from './store'
 import { markQuitting } from './appState'
 import { dismissActiveReminder } from './reminders'
-import { setWidgetAutoHeight, setWidgetContentHeight, setWidgetDisplayMode, setWidgetEditing } from './window'
+import { setWidgetAutoHeight, setWidgetContentHeight, setWidgetDisplayMode } from './window'
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   let resizeStart: { x: number; y: number; width: number; height: number } | null = null
@@ -52,7 +52,6 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   })
 
   ipcMain.on('window:hide', () => getWindow()?.hide())
-  ipcMain.on('window:setEditing', (_e, editing: boolean) => setWidgetEditing(getWindow(), editing === true))
   ipcMain.on('window:beginResize', (_e, x: number, y: number) => {
     const win = getWindow()
     if (!win || !Number.isFinite(x) || !Number.isFinite(y)) return

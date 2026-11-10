@@ -49,24 +49,6 @@ export default function App() {
   useEffect(() => window.api.window.onDrawerMotion(setDrawerMotion), [])
 
   useEffect(() => {
-    const reportEditing = (): void => {
-      const element = document.activeElement
-      const input = element instanceof HTMLInputElement &&
-        !['checkbox', 'radio', 'button', 'range', 'color'].includes(element.type)
-      window.api.window.setEditing(Boolean(input || element instanceof HTMLTextAreaElement ||
-        (element instanceof HTMLElement && element.isContentEditable)))
-    }
-    const onBlur = (): void => { queueMicrotask(reportEditing) }
-    document.addEventListener('focusin', reportEditing)
-    document.addEventListener('focusout', onBlur)
-    return () => {
-      document.removeEventListener('focusin', reportEditing)
-      document.removeEventListener('focusout', onBlur)
-      window.api.window.setEditing(false)
-    }
-  }, [])
-
-  useEffect(() => {
     if (!autoHeight || !settingsLoaded) return
     const shell = shellRef.current
     if (!shell) return

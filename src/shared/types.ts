@@ -72,7 +72,6 @@ export interface WindowApi {
   resizeTo: (x: number, y: number) => void
   endResize: () => void
   onAutoHeightChanged: (callback: (enabled: boolean) => void) => () => void
-  setEditing: (editing: boolean) => void
   onDrawerMotion: (callback: (motion: 'open' | 'close') => void) => () => void
 }
 

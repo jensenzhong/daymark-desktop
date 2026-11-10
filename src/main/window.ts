@@ -131,10 +131,6 @@ export function setWidgetDisplayMode(win: BrowserWindow | null, mode: DisplayMod
   return settings
 }
 
-export function setWidgetEditing(win: BrowserWindow | null, editing: boolean): void {
-  if (win) drawerControllers.get(win)?.setEditing(editing)
-}
-
 export function setWidgetContentHeight(win: BrowserWindow, requestedHeight: number): void {
   const sizingState = sizingStates.get(win)
   if (!sizingState?.autoHeight || !(readSettings().autoHeight ?? true) || !Number.isFinite(requestedHeight)) return

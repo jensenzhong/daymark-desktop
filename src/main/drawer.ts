@@ -3,19 +3,20 @@ import { BrowserWindow, screen } from 'electron'
 const EDGE_HEIGHT = 7
 const HANDLE_WIDTH = 88
 const EDGE_MARGIN = 10
-const LEAVE_DELAY = 1000
-const ANIMATION_MS = 180
+const WINDOW_MARGIN = 2
+const LEAVE_DELAY = 50
+const ANIMATION_MS = 100
+const POLL_INTERVAL = 50
+const OPEN_GRACE = 120
 
 export interface DrawerController {
   enable: () => void
   disable: () => void
-  setEditing: (editing: boolean) => void
   dispose: () => void
 }
 
 export function createDrawerController(win: BrowserWindow): DrawerController {
   let enabled = false
-  let editing = false
   let outsideSince = 0
   let graceUntil = 0
   let handle: BrowserWindow | null = null
@@ -85,8 +86,8 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
 
   const isNearWidget = (point: Electron.Point): boolean => {
     const bounds = win.getBounds()
-    return point.x >= bounds.x - EDGE_MARGIN && point.x < bounds.x + bounds.width + EDGE_MARGIN &&
-      point.y >= bounds.y - EDGE_MARGIN && point.y < bounds.y + bounds.height + EDGE_MARGIN
+    return point.x >= bounds.x - WINDOW_MARGIN && point.x < bounds.x + bounds.width + WINDOW_MARGIN &&
+      point.y >= bounds.y - WINDOW_MARGIN && point.y < bounds.y + bounds.height + WINDOW_MARGIN
   }
 
   const cancelClose = (): void => {
@@ -100,7 +101,7 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
     if (!enabled) return
     if (handle && !handle.isDestroyed()) handle.hide()
     outsideSince = 0
-    graceUntil = Date.now() + 1000
+    graceUntil = Date.now() + OPEN_GRACE
     motion('open')
   }
   win.on('show', onShow)
@@ -116,13 +117,13 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
         win.showInactive()
         motion('open')
         outsideSince = 0
-        graceUntil = Date.now() + 1000
+        graceUntil = Date.now() + OPEN_GRACE
       }
       return
     }
 
     if (handle && !handle.isDestroyed() && handle.isVisible()) handle.hide()
-    if (isNearWidget(point) || isAtHandle(point) || (editing && win.isFocused())) {
+    if (isNearWidget(point) || isAtHandle(point)) {
       outsideSince = 0
       cancelClose()
       return
@@ -136,7 +137,7 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
       closeTimer = null
       if (!enabled || win.isDestroyed()) return
       const current = screen.getCursorScreenPoint()
-      if (isNearWidget(current) || isAtHandle(current) || (editing && win.isFocused())) {
+      if (isNearWidget(current) || isAtHandle(current)) {
         outsideSince = 0
         motion('open')
         return
@@ -145,13 +146,13 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
       outsideSince = 0
       showHandle()
     }, ANIMATION_MS)
-  }, 150)
+  }, POLL_INTERVAL)
 
   return {
     enable: () => {
       enabled = true
       outsideSince = 0
-      graceUntil = Date.now() + 2000
+      graceUntil = Date.now() + OPEN_GRACE
       dock()
       if (!win.isVisible()) win.showInactive()
       motion('open')
@@ -163,7 +164,6 @@ export function createDrawerController(win: BrowserWindow): DrawerController {
       if (handle && !handle.isDestroyed()) handle.hide()
       motion('open')
     },
-    setEditing: (value) => { editing = value },
     dispose: () => {
       enabled = false
       clearInterval(timer)
