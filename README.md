@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/overlay.jpg" width="780" alt="Daymark 半透明待办窗口置顶于浏览器页面上方" />
+<img src="docs/images/overview.png" width="900" alt="Daymark 固定窗口、顶部抽屉和多种主题配色展示" />
 
 <img src="build/icon.png" width="96" alt="Daymark 标志" />
 
@@ -36,7 +36,13 @@ Daymark 是一个轻量的桌面待办应用。你可以将清单透明置顶在
 
 ## 界面预览
 
-首页图片使用演示任务和模拟的浏览器页面，展示半透明置顶效果和提醒倒计时。下图展示日历：红点表示对应日期有任务。
+首页使用演示任务展示固定窗口、顶部抽屉和多种主题配色。抽屉示意图展示展开后的状态：鼠标移到屏幕顶部细条即可唤出清单。
+
+下面展示半透明窗口置顶于浏览器上方，以及提醒倒计时：
+
+![Daymark 半透明窗口置顶于浏览器页面上方](docs/images/overlay.jpg)
+
+日历中的红点表示对应日期有任务：
 
 ![Daymark 日历月视图示例](docs/images/calendar.jpg)
 
