@@ -21,7 +21,7 @@ export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, on
       <div className="title-controls no-drag flex shrink-0 items-center gap-1">
         <button
           onClick={onTogglePin}
-          className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+          className="no-drag w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
           style={{ color: pinned ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
           aria-label={pinned ? t('Unpin widget from top', '取消窗口置顶') : t('Keep widget on top', '窗口置顶')}
           aria-pressed={pinned}
@@ -42,7 +42,7 @@ export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, on
         </button>
         <button
           onClick={onOpenSettings}
-          className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
+          className="no-drag w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
           aria-label={t('Settings', '设置')}
           title={t('Settings', '设置')}
         >
@@ -50,7 +50,7 @@ export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, on
         </button>
         <button
           onClick={() => window.api.window.hide()}
-          className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
+          className="no-drag w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
           aria-label={t('Hide widget', '隐藏窗口')}
           title={t('Hide widget', '隐藏窗口')}
         >
