@@ -5,6 +5,7 @@ const api: Api = {
   todos: {
     getAll: () => ipcRenderer.invoke('todos:getAll'),
     add: (text: string, date: string) => ipcRenderer.invoke('todos:add', text, date),
+    addMany: (texts: string[], date: string) => ipcRenderer.invoke('todos:addMany', texts, date),
     update: (id: string, patch: TodoPatch) => ipcRenderer.invoke('todos:update', id, patch),
     toggleDone: (id: string) => ipcRenderer.invoke('todos:toggleDone', id),
     remove: (id: string) => ipcRenderer.invoke('todos:delete', id),

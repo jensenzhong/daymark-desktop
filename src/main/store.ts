@@ -1,5 +1,5 @@
-import { app } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { app, dialog } from 'electron'
+import { closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import type { DisplayMode, Language, Settings, Todo, ThemeConfig, TodoPatch, WindowBounds } from '../shared/types'
@@ -14,24 +14,60 @@ function ensureDataDir(): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 }
 
-function readJson<T>(path: string, fallback: T): T {
+const reportedErrors = new Set<string>()
+
+function reportStorageError(path: string, action: string, error: unknown): never {
+  if (!reportedErrors.has(path)) {
+    reportedErrors.add(path)
+    dialog.showErrorBox('Daymark data error / 数据错误',
+      `Could not ${action} ${path}. Your existing data has not been replaced. Check the file and its .bak backup.\n\n无法${action === 'read' ? '读取' : '保存'}数据，请检查原文件及其 .bak 备份。`)
+  }
+  throw error instanceof Error ? error : new Error(String(error))
+}
+
+function readJson<T>(path: string, fallback: T, validate: (value: unknown) => boolean): T {
   try {
-    if (!existsSync(path)) return fallback
-    return JSON.parse(readFileSync(path, 'utf-8')) as T
-  } catch {
-    return fallback
+    if (!existsSync(path)) {
+      if (existsSync(`${path}.bak`)) throw new Error(`Missing data file with backup: ${path}`)
+      return fallback
+    }
+    const value: unknown = JSON.parse(readFileSync(path, 'utf-8'))
+    if (!validate(value)) throw new Error(`Invalid data format: ${path}`)
+    return value as T
+  } catch (error) {
+    return reportStorageError(path, 'read', error)
   }
 }
 
 function writeJson(path: string, data: unknown): void {
-  ensureDataDir()
-  writeFileSync(path, JSON.stringify(data, null, 2), 'utf-8')
+  const temp = `${path}.${randomUUID()}.tmp`
+  const backupTemp = `${path}.${randomUUID()}.bak.tmp`
+  try {
+    ensureDataDir()
+    const fd = openSync(temp, 'wx')
+    try {
+      writeFileSync(fd, JSON.stringify(data, null, 2), 'utf-8')
+      fsyncSync(fd)
+    } finally {
+      closeSync(fd)
+    }
+    if (existsSync(path)) {
+      copyFileSync(path, backupTemp)
+      renameSync(backupTemp, `${path}.bak`)
+    }
+    renameSync(temp, path)
+  } catch (error) {
+    for (const file of [temp, backupTemp]) {
+      try { if (existsSync(file)) unlinkSync(file) } catch { /* Preserve the original error. */ }
+    }
+    reportStorageError(path, 'write', error)
+  }
 }
 
 // -- Todos --
 
 export function readTodos(): Todo[] {
-  return readJson<Todo[]>(todosPath(), [])
+  return readJson<Todo[]>(todosPath(), [], Array.isArray)
 }
 
 const todoListeners = new Set<(todos: Todo[]) => void>()
@@ -47,11 +83,17 @@ function writeTodos(todos: Todo[]): void {
 }
 
 export function addTodo(text: string, date: string): Todo[] {
-  const trimmed = text.trim()
-  if (!trimmed) return readTodos()
+  return addTodos([text], date)
+}
+
+export function addTodos(texts: string[], date: string): Todo[] {
+  const clean = texts.map((text) => text.trim()).filter(Boolean)
   const todos = readTodos()
-  const order = todos.filter((t) => t.date === date).length
-  todos.push({ id: randomUUID(), text: trimmed, done: false, date, createdAt: Date.now(), order })
+  if (clean.length === 0) return todos
+  let order = todos.reduce((max, todo) => todo.date === date ? Math.max(max, todo.order) : max, -1) + 1
+  for (const text of clean) {
+    todos.push({ id: randomUUID(), text, done: false, date, createdAt: Date.now(), order: order++ })
+  }
   writeTodos(todos)
   return todos
 }
@@ -126,7 +168,7 @@ function defaultSettings(): Settings {
 
 export function readSettings(): Settings {
   const defaults = defaultSettings()
-  const saved = readJson<Partial<Settings> | null>(settingsPath(), null)
+  const saved = readJson<Partial<Settings> | null>(settingsPath(), null, (value) => value !== null && typeof value === 'object' && !Array.isArray(value))
   if (!saved) return defaults
   return {
     ...defaults,

@@ -15,6 +15,7 @@ export default function App() {
   const todos = useTodoStore((s) => s.todos)
   const loadTodos = useTodoStore((s) => s.load)
   const addTodo = useTodoStore((s) => s.add)
+  const addManyTodos = useTodoStore((s) => s.addMany)
   const updateTodo = useTodoStore((s) => s.update)
   const toggleDone = useTodoStore((s) => s.toggleDone)
   const removeTodo = useTodoStore((s) => s.remove)
@@ -121,7 +122,7 @@ export default function App() {
           onSetReminder={(id, reminderAt) => updateTodo(id, { reminderAt })}
           onReorder={(ids) => reorderTodos(ids)}
         />
-        <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} />
+        <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} onAddMany={(texts) => addManyTodos(texts, selectedDate)} />
         <div
           className="resize-grip"
           title={t('Drag to resize', '拖动调整窗口大小')}

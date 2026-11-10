@@ -9,15 +9,17 @@ import { refreshTrayMenu } from './tray'
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   let resizeStart: { x: number; y: number; width: number; height: number } | null = null
   ipcMain.handle('todos:getAll', () => store.readTodos())
-  ipcMain.handle('todos:add', (_e, text: string, date: string) => {
-    const todos = store.addTodo(text, date)
+  const addMany = (texts: string[], date: string) => {
+    const todos = store.addTodos(texts, date)
     if (!(store.readSettings().autoHeight ?? true)) {
       store.setAutoHeight(true)
       setWidgetAutoHeight(getWindow(), true)
       getWindow()?.webContents.send('window:autoHeight', true)
     }
     return todos
-  })
+  }
+  ipcMain.handle('todos:add', (_e, text: string, date: string) => addMany([text], date))
+  ipcMain.handle('todos:addMany', (_e, texts: string[], date: string) => addMany(texts, date))
   ipcMain.handle('todos:update', (_e, id: string, patch: TodoPatch) => store.updateTodo(id, patch))
   ipcMain.handle('todos:toggleDone', (_e, id: string) => store.toggleTodoDone(id))
   ipcMain.handle('todos:delete', (_e, id: string) => store.deleteTodo(id))

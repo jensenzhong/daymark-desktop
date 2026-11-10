@@ -105,6 +105,7 @@ npm run dev
 
 ```powershell
 npm run typecheck    # TypeScript 检查
+npm test             # 任务保存、顺延和提醒检查
 npm run build        # 编译生产代码到 out/
 npm run build:win    # 构建 Windows NSIS 安装包到 dist/
 ```
@@ -125,6 +126,8 @@ Release 页面提供 Windows 的 `.exe`，以及苹果芯片和 Intel 芯片各�
 ```
 
 建议退出程序后再备份或恢复这两个文件。应用不需要登录，也没有内置云同步；GitHub 仓库用于管理代码，不会自动备份个人待办数据。
+
+保存时，Daymark 会保留上一次成功保存的 `.bak` 备份。如果数据文件损坏或无法读取，应用会提示错误并停止覆盖；请先备份原文件和对应的 `.bak` 文件，再进行恢复。
 
 ## 项目结构
 

@@ -48,6 +48,7 @@ export type TodoPatch = Partial<Pick<Todo, 'text' | 'date' | 'order' | 'reminder
 export interface TodoApi {
   getAll: () => Promise<Todo[]>
   add: (text: string, date: string) => Promise<Todo[]>
+  addMany: (texts: string[], date: string) => Promise<Todo[]>
   update: (id: string, patch: TodoPatch) => Promise<Todo[]>
   toggleDone: (id: string) => Promise<Todo[]>
   remove: (id: string) => Promise<Todo[]>

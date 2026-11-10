@@ -6,6 +6,7 @@ interface TodoState {
   loaded: boolean
   load: () => Promise<void>
   add: (text: string, date: string) => Promise<void>
+  addMany: (texts: string[], date: string) => Promise<void>
   update: (id: string, patch: TodoPatch) => Promise<void>
   toggleDone: (id: string) => Promise<void>
   remove: (id: string) => Promise<void>
@@ -21,6 +22,10 @@ export const useTodoStore = create<TodoState>((set) => ({
   },
   add: async (text, date) => {
     const todos = await window.api.todos.add(text, date)
+    set({ todos })
+  },
+  addMany: async (texts, date) => {
+    const todos = await window.api.todos.addMany(texts, date)
     set({ todos })
   },
   update: async (id, patch) => {

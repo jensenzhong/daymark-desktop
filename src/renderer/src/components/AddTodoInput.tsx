@@ -3,13 +3,16 @@ import type { ClipboardEvent } from 'react'
 import { useLanguage } from '../lib/language'
 
 interface AddTodoInputProps {
-  onAdd: (text: string) => void
+  onAdd: (text: string) => Promise<void>
+  onAddMany: (texts: string[]) => Promise<void>
 }
 
-export function AddTodoInput({ onAdd }: AddTodoInputProps) {
+export function AddTodoInput({ onAdd, onAddMany }: AddTodoInputProps) {
   const { t } = useLanguage()
   const [value, setValue] = useState('')
   const [addedCount, setAddedCount] = useState<number | null>(null)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const splitPastedTodos = (text: string): string[] => {
     const normalized = text.replace(/\r\n?/g, '\n').trim()
@@ -34,26 +37,44 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
     return [lines.join(' ')]
   }
 
-  const submit = (): void => {
+  const submit = async (): Promise<void> => {
     const trimmed = value.trim()
-    if (!trimmed) return
-    onAdd(trimmed)
-    setValue('')
+    if (!trimmed || saving) return
+    setSaving(true)
+    try {
+      await onAdd(trimmed)
+      setValue((current) => current === value ? '' : current)
+      setSaveError(false)
+    } catch {
+      setSaveError(true)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') submit()
+    if (e.key === 'Enter') void submit()
   }
 
-  const handlePaste = (e: ClipboardEvent<HTMLInputElement>): void => {
+  const handlePaste = async (e: ClipboardEvent<HTMLInputElement>): Promise<void> => {
     const pasted = e.clipboardData.getData('text/plain')
     if (!pasted.includes('\n')) return
 
     e.preventDefault()
     const todos = splitPastedTodos(pasted)
     if (todos.length > 1) {
-      todos.forEach(onAdd)
-      setAddedCount(todos.length)
+      if (saving) return
+      setSaving(true)
+      try {
+        await onAddMany(todos)
+        setAddedCount(todos.length)
+        setSaveError(false)
+      } catch {
+        setValue((current) => [current, ...todos].filter(Boolean).join('； '))
+        setSaveError(true)
+      } finally {
+        setSaving(false)
+      }
       return
     }
 
@@ -71,9 +92,10 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
         onChange={(e) => {
           setValue(e.target.value)
           setAddedCount(null)
+          setSaveError(false)
         }}
         onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
+        onPaste={(e) => { void handlePaste(e) }}
         placeholder={t('Add a todo…', '添加待办…')}
         className="todo-input w-full rounded-lg px-3 py-2 text-sm outline-none transition-shadow"
         style={{ color: 'var(--color-text)' }}
@@ -81,6 +103,11 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
       {addedCount !== null && (
         <p className="mt-1 px-1 text-xs" style={{ color: 'var(--color-accent)' }} aria-live="polite">
           {t(`Added ${addedCount} todos`, `已添加 ${addedCount} 条待办`)}
+        </p>
+      )}
+      {saveError && (
+        <p className="mt-1 px-1 text-xs text-red-500" role="alert">
+          {t('Could not save. Your input is still available.', '保存失败，输入内容仍保留。')}
         </p>
       )}
     </div>

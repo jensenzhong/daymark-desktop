@@ -13,7 +13,17 @@ function getWindow(): BrowserWindow | null {
   return mainWindow
 }
 
-app.whenReady().then(() => {
+const hasLock = app.requestSingleInstanceLock()
+if (!hasLock) app.quit()
+
+app.on('second-instance', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+})
+
+if (hasLock) app.whenReady().then(() => {
   app.setAppUserModelId('com.daymark.app')
 
   registerIpcHandlers(getWindow)
@@ -34,6 +44,9 @@ app.whenReady().then(() => {
       mainWindow?.show()
     }
   })
+}).catch((error: unknown) => {
+  console.error('Daymark failed to start:', error)
+  app.quit()
 })
 
 // The widget has no dock/taskbar presence (skipTaskbar) and is controlled
