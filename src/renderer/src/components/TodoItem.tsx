@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 import { createPortal } from 'react-dom'
 import type { Todo } from '@shared/types'
 import { ReminderCountdown } from './ReminderCountdown'
+import { useLanguage } from '../lib/language'
 
 interface TodoItemProps {
   todo: Todo
@@ -34,6 +35,7 @@ export function TodoItem({
   onDrop,
   isDropTarget
 }: TodoItemProps) {
+  const { locale, t } = useLanguage()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
   const [reminderOpen, setReminderOpen] = useState(false)
@@ -128,7 +130,7 @@ export function TodoItem({
           checked={todo.done}
           onChange={() => onToggle(todo.id)}
           className="checkbox w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
-          aria-label={todo.done ? 'Mark as not done' : 'Mark as done'}
+          aria-label={todo.done ? t('Mark as not done', '标记为未完成') : t('Mark as done', '标记为已完成')}
         />
         <button
           draggable
@@ -149,8 +151,8 @@ export function TodoItem({
           onDragEnd={onDragEnd}
           className="w-4 h-5 -ml-1 shrink-0 cursor-grab active:cursor-grabbing text-xs leading-none"
           style={{ color: 'var(--color-text-muted)' }}
-          aria-label="Drag to reorder"
-          title="Drag to reorder"
+          aria-label={t('Drag to reorder', '拖动调整顺序')}
+          title={t('Drag to reorder', '拖动调整顺序')}
         >
           ⠿
         </button>
@@ -181,20 +183,20 @@ export function TodoItem({
           onClick={() => setMenuOpen((open) => !open)}
           className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 shrink-0 leading-none"
           style={{ color: 'var(--color-text-muted)' }}
-          aria-label="Task actions"
+          aria-label={t('Task actions', '待办操作')}
           aria-expanded={menuOpen}
-          title="Task actions"
+          title={t('Task actions', '待办操作')}
         >
           ⋯
         </button>
       </div>
 
       {menuMounted && createPortal(
-        <div ref={menuRef} className="todo-actions no-drag" data-open={menuOpen} style={{ left: menuPosition.left, top: menuPosition.top }} role="group" aria-label="Task actions" aria-hidden={!menuOpen} inert={!menuOpen}>
+        <div ref={menuRef} className="todo-actions no-drag" data-open={menuOpen} style={{ left: menuPosition.left, top: menuPosition.top }} role="group" aria-label={t('Task actions', '待办操作')} aria-hidden={!menuOpen} inert={!menuOpen}>
           <button
             className="todo-action"
-            aria-label={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
-            title={todo.reminderAt ? 'Change reminder' : 'Set reminder'}
+            aria-label={todo.reminderAt ? t('Change reminder', '修改提醒') : t('Set reminder', '设置提醒')}
+            title={todo.reminderAt ? t('Change reminder', '修改提醒') : t('Set reminder', '设置提醒')}
             onClick={() => {
               setMenuOpen(false)
               setReminderError(false)
@@ -205,8 +207,8 @@ export function TodoItem({
           </button>
           <button
             className="todo-action todo-action-delete"
-            aria-label="Delete todo"
-            title="Delete todo"
+            aria-label={t('Delete todo', '删除待办')}
+            title={t('Delete todo', '删除待办')}
             onClick={() => { setMenuOpen(false); onDelete(todo.id) }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m-8 0 1 12h8l1-12M10 10v6m4-6v6" /></svg>
@@ -217,7 +219,7 @@ export function TodoItem({
       {reminderOpen && (
         <div className="ml-6 flex flex-col gap-1">
           <label className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Remind me at
+            {t('Remind me at', '提醒时间')}
             <input
               type="datetime-local"
               min={toLocalDateTimeInput(Date.now() + 60_000)}
@@ -243,23 +245,23 @@ export function TodoItem({
                 background: 'color-mix(in srgb, var(--color-text) 8%, transparent)',
                 border: '1px solid color-mix(in srgb, var(--color-text) 14%, transparent)'
               }}
-              aria-label="Reminder date and time"
+              aria-label={t('Reminder date and time', '提醒日期和时间')}
             />
           </label>
-          {reminderError && <span className="text-xs text-red-400">Choose a future time.</span>}
+          {reminderError && <span className="text-xs text-red-400">{t('Choose a future time.', '请选择未来的时间。')}</span>}
         </div>
       )}
 
       {todo.reminderAt && !reminderOpen && (
         <div className="reminder-line ml-6 flex min-w-0 items-center gap-1 text-xs" style={{ color: 'var(--color-accent)' }}>
-          <span className="min-w-0 truncate" title={new Date(todo.reminderAt).toLocaleString()}>
-            ◷ {new Date(todo.reminderAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}
+          <span className="min-w-0 truncate" title={new Date(todo.reminderAt).toLocaleString(locale)}>
+            ◷ {new Date(todo.reminderAt).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}
           </span>
           <button
             onClick={() => onSetReminder(todo.id, null)}
             className="shrink-0 rounded px-1 hover:bg-white/10"
-            aria-label="Remove reminder"
-            title="Remove reminder"
+            aria-label={t('Remove reminder', '移除提醒')}
+            title={t('Remove reminder', '移除提醒')}
           >
             ×
           </button>

@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
-import type { DisplayMode, Settings, Todo, ThemeConfig, TodoPatch, WindowBounds } from '../shared/types'
+import type { DisplayMode, Language, Settings, Todo, ThemeConfig, TodoPatch, WindowBounds } from '../shared/types'
 import { THEME_PRESETS, DEFAULT_THEME_ID } from '../shared/themePresets'
 
 const dataDir = (): string => app.getPath('userData')
@@ -104,6 +104,7 @@ export function rolloverIncompleteTodos(today: string): Todo[] {
 function defaultSettings(): Settings {
   const base = THEME_PRESETS[0]
   return {
+    language: 'en',
     themeId: DEFAULT_THEME_ID,
     customTheme: { ...base, id: 'custom', name: 'Custom' },
     windowBounds: null,
@@ -122,6 +123,7 @@ export function readSettings(): Settings {
   return {
     ...defaults,
     ...saved,
+    language: saved.language === 'zh' ? 'zh' : 'en',
     customTheme: saved.customTheme ?? defaults.customTheme,
     windowBounds: saved.windowBounds ?? null,
     alwaysOnTop: saved.alwaysOnTop ?? true,
@@ -134,6 +136,13 @@ export function readSettings(): Settings {
 
 function writeSettings(settings: Settings): void {
   writeJson(settingsPath(), settings)
+}
+
+export function setLanguage(language: Language): Settings {
+  const settings = readSettings()
+  settings.language = language
+  writeSettings(settings)
+  return settings
 }
 
 export function setTheme(themeId: string): Settings {

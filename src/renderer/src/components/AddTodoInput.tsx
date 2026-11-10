@@ -1,11 +1,13 @@
 import { useState, type KeyboardEvent } from 'react'
 import type { ClipboardEvent } from 'react'
+import { useLanguage } from '../lib/language'
 
 interface AddTodoInputProps {
   onAdd: (text: string) => void
 }
 
 export function AddTodoInput({ onAdd }: AddTodoInputProps) {
+  const { t } = useLanguage()
   const [value, setValue] = useState('')
   const [addedCount, setAddedCount] = useState<number | null>(null)
 
@@ -72,13 +74,13 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
         }}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        placeholder="Add a todo…"
+        placeholder={t('Add a todo…', '添加待办…')}
         className="todo-input w-full rounded-lg px-3 py-2 text-sm outline-none transition-shadow"
         style={{ color: 'var(--color-text)' }}
       />
       {addedCount !== null && (
         <p className="mt-1 px-1 text-xs" style={{ color: 'var(--color-accent)' }} aria-live="polite">
-          Added {addedCount} todos
+          {t(`Added ${addedCount} todos`, `已添加 ${addedCount} 条待办`)}
         </p>
       )}
     </div>

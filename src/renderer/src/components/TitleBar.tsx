@@ -1,4 +1,5 @@
 import { DateNav } from './DateNav'
+import { useLanguage } from '../lib/language'
 
 interface TitleBarProps {
   onOpenSettings: () => void
@@ -10,6 +11,7 @@ interface TitleBarProps {
 }
 
 export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, onChangeDate, todoDates }: TitleBarProps) {
+  const { t } = useLanguage()
   return (
     <div className="drag-region title-bar flex items-center px-4 py-3 shrink-0">
       <span className="title-name font-semibold tracking-tight shrink-0" style={{ color: 'var(--color-text)' }}>
@@ -21,9 +23,9 @@ export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, on
           onClick={onTogglePin}
           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
           style={{ color: pinned ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
-          aria-label={pinned ? 'Unpin widget from top' : 'Keep widget on top'}
+          aria-label={pinned ? t('Unpin widget from top', '取消窗口置顶') : t('Keep widget on top', '窗口置顶')}
           aria-pressed={pinned}
-          title={pinned ? 'Unpin widget from top' : 'Keep widget on top'}
+          title={pinned ? t('Unpin widget from top', '取消窗口置顶') : t('Keep widget on top', '窗口置顶')}
         >
           <svg
             className={`w-4 h-4 transition-transform ${pinned ? '' : 'rotate-45'}`}
@@ -41,16 +43,16 @@ export function TitleBar({ onOpenSettings, pinned, onTogglePin, selectedDate, on
         <button
           onClick={onOpenSettings}
           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
-          aria-label="Settings"
-          title="Settings"
+          aria-label={t('Settings', '设置')}
+          title={t('Settings', '设置')}
         >
           ⚙
         </button>
         <button
           onClick={() => window.api.window.hide()}
           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors leading-none"
-          aria-label="Hide widget"
-          title="Hide widget"
+          aria-label={t('Hide widget', '隐藏窗口')}
+          title={t('Hide widget', '隐藏窗口')}
         >
           –
         </button>

@@ -1,6 +1,10 @@
 import { BrowserWindow, Menu, Tray, app, nativeImage } from 'electron'
 import { markQuitting } from './appState'
 import { getIconPath } from './icon'
+import { readSettings } from './store'
+
+let refreshMenu = (): void => {}
+export function refreshTrayMenu(): void { refreshMenu() }
 
 function createTrayIcon(image: Electron.NativeImage): Electron.NativeImage {
   if (image.isEmpty()) return image
@@ -41,10 +45,11 @@ export function createTray(getWindow: () => BrowserWindow | null): Tray {
   const rebuildMenu = (): void => {
     const win = getWindow()
     const visible = win?.isVisible() ?? false
+    const zh = readSettings().language === 'zh'
     tray.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: visible ? 'Hide Widget' : 'Show Widget',
+          label: visible ? (zh ? '隐藏窗口' : 'Hide Widget') : (zh ? '显示窗口' : 'Show Widget'),
           click: () => {
             if (!win) return
             if (visible) win.hide()
@@ -54,7 +59,7 @@ export function createTray(getWindow: () => BrowserWindow | null): Tray {
         },
         { type: 'separator' },
         {
-          label: 'Quit Daymark',
+          label: zh ? '退出 Daymark' : 'Quit Daymark',
           click: () => {
             markQuitting()
             app.quit()
@@ -64,6 +69,7 @@ export function createTray(getWindow: () => BrowserWindow | null): Tray {
     )
   }
 
+  refreshMenu = rebuildMenu
   rebuildMenu()
   tray.on('click', () => {
     const win = getWindow()

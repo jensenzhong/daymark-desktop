@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Todo } from '@shared/types'
 import { TodoItem } from './TodoItem'
+import { useLanguage } from '../lib/language'
 
 interface TodoListProps {
   todos: Todo[]
@@ -12,6 +13,7 @@ interface TodoListProps {
 }
 
 export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder, onReorder }: TodoListProps) {
+  const { t } = useLanguage()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
@@ -21,7 +23,7 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onSetReminder, onR
         className="todo-content-empty flex-1 flex items-center justify-center px-6 text-center text-sm"
         style={{ color: 'var(--color-text-muted)' }}
       >
-        Nothing here yet. Add your first todo below.
+        {t('Nothing here yet. Add your first todo below.', '这里还没有待办，在下方添加一条吧。')}
       </div>
     )
   }

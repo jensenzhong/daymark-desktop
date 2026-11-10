@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import type { DisplayMode, Settings, ThemeConfig } from '@shared/types'
+import type { DisplayMode, Language, Settings, ThemeConfig } from '@shared/types'
 
 interface SettingsState {
   settings: Settings | null
   loaded: boolean
   load: () => Promise<void>
+  setLanguage: (language: Language) => Promise<void>
   setTheme: (themeId: string) => Promise<void>
   setCustomTheme: (theme: ThemeConfig) => Promise<void>
   setBackgroundOpacity: (opacity: number | null) => Promise<void>
@@ -19,6 +20,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   load: async () => {
     const settings = await window.api.settings.get()
     set({ settings, loaded: true })
+  },
+  setLanguage: async (language) => {
+    const settings = await window.api.settings.setLanguage(language)
+    set({ settings })
   },
   setTheme: async (themeId) => {
     const settings = await window.api.settings.setTheme(themeId)

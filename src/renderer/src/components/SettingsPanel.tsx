@@ -2,13 +2,16 @@ import { THEME_PRESETS, resolveTheme } from '@shared/themePresets'
 import type { DisplayMode, ThemeConfig } from '@shared/types'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { hexToRgb, parseRgba, rgbToHex, toRgba } from '../lib/color'
+import { useLanguage } from '../lib/language'
 
 interface SettingsPanelProps {
   onClose: () => void
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
+  const { t } = useLanguage()
   const settings = useSettingsStore((s) => s.settings)
+  const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setTheme = useSettingsStore((s) => s.setTheme)
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme)
   const setBackgroundOpacity = useSettingsStore((s) => s.setBackgroundOpacity)
@@ -33,12 +36,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     <div className="settings-panel no-drag absolute inset-0 flex flex-col">
       <div className="drag-region flex items-center justify-between px-4 py-3 shrink-0">
         <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
-          Settings
+          {t('Settings', '设置')}
         </span>
         <button
           onClick={onClose}
           className="no-drag w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 leading-none"
-          aria-label="Close settings"
+          aria-label={t('Close settings', '关闭设置')}
         >
           ×
         </button>
@@ -46,8 +49,19 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
       <div className="todo-scroll flex-1 overflow-y-auto px-4 pb-4 space-y-5">
         <div>
+          <label htmlFor="language" className="block text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
+            {t('Language', '语言')}
+          </label>
+          <select id="language" value={settings.language} onChange={(e) => setLanguage(e.target.value === 'zh' ? 'zh' : 'en')}
+            className="todo-input display-mode-select w-full rounded-lg px-3 py-2 text-xs outline-none"
+            style={{ color: 'var(--color-text)', backgroundColor: 'var(--color-panel-bg)' }}>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="display-mode" className="block text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
-            显示方式
+            {t('Display mode', '显示方式')}
           </label>
           <select
             id="display-mode"
@@ -56,17 +70,17 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             className="todo-input display-mode-select w-full rounded-lg px-3 py-2 text-xs outline-none"
             style={{ color: 'var(--color-text)', backgroundColor: 'var(--color-panel-bg)' }}
           >
-            <option value="fixed">固定窗口</option>
-            <option value="drawer">顶部抽屉</option>
+            <option value="fixed">{t('Fixed window', '固定窗口')}</option>
+            <option value="drawer">{t('Top drawer', '顶部抽屉')}</option>
           </select>
           <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-            抽屉收起后，将鼠标移到清单对应的屏幕顶部细条即可展开；展开时保持置顶。
+            {t('Move your mouse to the top-edge handle to open the drawer. It stays on top while open.', '抽屉收起后，将鼠标移到清单对应的屏幕顶部细条即可展开；展开时保持置顶。')}
           </p>
         </div>
 
         <div>
           <p className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
-            Theme
+            {t('Theme', '主题')}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {THEME_PRESETS.map((preset) => (
@@ -82,7 +96,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   color: preset.text
                 }}
               >
-                {preset.name}
+                {t(preset.name, ({ 'light-glass': '浅色玻璃', 'dark-glass': '深色玻璃', 'minimal-light': '极简浅色', 'minimal-dark': '极简深色', 'claude-coral': '珊瑚红', 'sage-cream': '鼠尾草绿', 'warm-coral': '奶油珊瑚', 'glacier-blue': '冰川蓝', 'midnight-amber': '午夜暖金', 'dusk-plum': '暮色梅紫' } as Record<string, string>)[preset.id] ?? preset.name)}
               </button>
             ))}
             <button
@@ -94,14 +108,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 color: settings.customTheme.text
               }}
             >
-              Custom
+              {t('Custom', '自定义')}
             </button>
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            <span>Widget opacity</span>
+            <span>{t('Widget opacity', '窗口不透明度')}</span>
             <span>{Math.round((settings.backgroundOpacity ?? bg.a) * 100)}%</span>
           </div>
           <input
@@ -112,7 +126,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             value={settings.backgroundOpacity ?? bg.a}
             onChange={(e) => setBackgroundOpacity(parseFloat(e.target.value))}
             className="w-full mt-1"
-            aria-label="Widget opacity"
+            aria-label={t('Widget opacity', '窗口不透明度')}
           />
           {settings.backgroundOpacity != null && (
             <button
@@ -120,13 +134,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               className="mt-1 text-xs hover:underline"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              Use theme default
+              {t('Use theme default', '使用主题默认值')}
             </button>
           )}
         </div>
 
         <label className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <span>Auto-fit height to task list</span>
+          <span>{t('Auto-fit height to task list', '高度自动适应清单')}</span>
           <input
             type="checkbox"
             checked={settings.autoHeight ?? true}
@@ -138,7 +152,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {isCustom && (
           <div className="space-y-4">
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Accent color
+              {t('Accent color', '强调色')}
               <input
                 type="color"
                 value={active.accent}
@@ -148,7 +162,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </label>
 
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Background color
+              {t('Background color', '背景色')}
               <input
                 type="color"
                 value={rgbToHex(bg.r, bg.g, bg.b)}
@@ -161,7 +175,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </label>
 
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Blur ({active.blur}px)
+              {t('Blur', '模糊')} ({active.blur}px)
               <input
                 type="range"
                 min={0}
@@ -174,7 +188,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </label>
 
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Corner radius ({active.radius}px)
+              {t('Corner radius', '圆角')} ({active.radius}px)
               <input
                 type="range"
                 min={0}
@@ -187,7 +201,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </label>
 
             <label className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Font size ({active.fontSize}px)
+              {t('Font size', '字号')} ({active.fontSize}px)
               <input
                 type="range"
                 min={12}
@@ -206,7 +220,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           className="w-full text-xs text-left px-3 py-2 rounded-lg hover:bg-white/10"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          Quit Daymark
+          {t('Quit Daymark', '退出 Daymark')}
         </button>
       </div>
     </div>

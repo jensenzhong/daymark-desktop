@@ -4,6 +4,7 @@ import * as store from './store'
 import { markQuitting } from './appState'
 import { dismissActiveReminder } from './reminders'
 import { setWidgetAutoHeight, setWidgetContentHeight, setWidgetDisplayMode } from './window'
+import { refreshTrayMenu } from './tray'
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   let resizeStart: { x: number; y: number; width: number; height: number } | null = null
@@ -30,6 +31,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   })
 
   ipcMain.handle('settings:get', () => store.readSettings())
+  ipcMain.handle('settings:setLanguage', (_e, language: unknown) => {
+    if (language !== 'en' && language !== 'zh') return store.readSettings()
+    const settings = store.setLanguage(language)
+    refreshTrayMenu()
+    return settings
+  })
   ipcMain.handle('settings:setTheme', (_e, themeId: string) => store.setTheme(themeId))
   ipcMain.handle('settings:setCustomTheme', (_e, theme: ThemeConfig) => store.setCustomTheme(theme))
   ipcMain.handle('settings:setBackgroundOpacity', (_e, opacity: number | null) =>

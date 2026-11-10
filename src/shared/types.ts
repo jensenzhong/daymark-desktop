@@ -29,8 +29,10 @@ export interface WindowBounds {
 }
 
 export type DisplayMode = 'fixed' | 'drawer'
+export type Language = 'en' | 'zh'
 
 export interface Settings {
+  language: Language
   themeId: string
   customTheme: ThemeConfig
   windowBounds: WindowBounds | null
@@ -55,6 +57,7 @@ export interface TodoApi {
 
 export interface SettingsApi {
   get: () => Promise<Settings>
+  setLanguage: (language: Language) => Promise<Settings>
   setTheme: (themeId: string) => Promise<Settings>
   setCustomTheme: (theme: ThemeConfig) => Promise<Settings>
   setBackgroundOpacity: (opacity: number | null) => Promise<Settings>

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { addDays, todayKey, toDateKey } from '../lib/date'
+import { useLanguage } from '../lib/language'
 
 interface CalendarPopoverProps {
   selectedDate: string
@@ -23,6 +24,7 @@ function shiftMonth(key: string, delta: number): string {
 }
 
 export function CalendarPopover({ selectedDate, todoDates, onSelect, onClose }: CalendarPopoverProps) {
+  const { locale, t } = useLanguage()
   const [view, setView] = useState<'month' | 'week'>('month')
   const [cursor, setCursor] = useState(selectedDate)
   const [position, setPosition] = useState({ left: 8, top: 50 })
@@ -38,8 +40,8 @@ export function CalendarPopover({ selectedDate, todoDates, onSelect, onClose }: 
     addDays(view === 'month' ? monthStart : weekStart, index)
   )
   const heading = view === 'month'
-    ? `${cursorDate.getFullYear()}年 ${cursorDate.getMonth() + 1}月`
-    : `${parseDate(weekStart).getMonth() + 1}月${parseDate(weekStart).getDate()}日 – ${parseDate(addDays(weekStart, 6)).getMonth() + 1}月${parseDate(addDays(weekStart, 6)).getDate()}日`
+    ? cursorDate.toLocaleDateString(locale, { year: 'numeric', month: 'long' })
+    : `${parseDate(weekStart).toLocaleDateString(locale, { month: 'short', day: 'numeric' })} – ${parseDate(addDays(weekStart, 6)).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`
 
   useLayoutEffect(() => {
     const anchor = document.getElementById('calendar-trigger')?.getBoundingClientRect()
@@ -80,29 +82,29 @@ export function CalendarPopover({ selectedDate, todoDates, onSelect, onClose }: 
   }, [onClose])
 
   return createPortal(
-    <div ref={panelRef} className="calendar-popover no-drag" role="dialog" aria-label="选择日期" tabIndex={-1}
+    <div ref={panelRef} className="calendar-popover no-drag" role="dialog" aria-label={t('Choose date', '选择日期')} tabIndex={-1}
       style={{ left: position.left, top: position.top, maxHeight: `calc(100vh - ${position.top + 8}px)` }}>
       <div className="calendar-top">
-        <span className="calendar-title">日历</span>
-        <div className="calendar-switch" aria-label="日历视图">
-          <button aria-pressed={view === 'week'} onClick={() => setView('week')}>周</button>
-          <button aria-pressed={view === 'month'} onClick={() => setView('month')}>月</button>
+        <span className="calendar-title">{t('Calendar', '日历')}</span>
+        <div className="calendar-switch" aria-label={t('Calendar view', '日历视图')}>
+          <button aria-pressed={view === 'week'} onClick={() => setView('week')}>{t('Week', '周')}</button>
+          <button aria-pressed={view === 'month'} onClick={() => setView('month')}>{t('Month', '月')}</button>
         </div>
-        <button className="calendar-today" onClick={() => onSelect(today)}>今天</button>
+        <button className="calendar-today" onClick={() => onSelect(today)}>{t('Today', '今天')}</button>
       </div>
       <div className="calendar-navigation">
-        <button aria-label={view === 'month' ? '上个月' : '上一周'} onClick={() => setCursor(view === 'month' ? shiftMonth(cursor, -1) : addDays(cursor, -7))}>‹</button>
+        <button aria-label={view === 'month' ? t('Previous month', '上个月') : t('Previous week', '上一周')} onClick={() => setCursor(view === 'month' ? shiftMonth(cursor, -1) : addDays(cursor, -7))}>‹</button>
         <span>{heading}</span>
-        <button aria-label={view === 'month' ? '下个月' : '下一周'} onClick={() => setCursor(view === 'month' ? shiftMonth(cursor, 1) : addDays(cursor, 7))}>›</button>
+        <button aria-label={view === 'month' ? t('Next month', '下个月') : t('Next week', '下一周')} onClick={() => setCursor(view === 'month' ? shiftMonth(cursor, 1) : addDays(cursor, 7))}>›</button>
       </div>
       <div className="calendar-grid calendar-weekdays" aria-hidden="true">
-        {['一', '二', '三', '四', '五', '六', '日'].map((day) => <span key={day}>{day}</span>)}
+        {(locale === 'zh-CN' ? ['一', '二', '三', '四', '五', '六', '日'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']).map((day) => <span key={day}>{day}</span>)}
       </div>
       <div className="calendar-grid">
         {dates.map((date) => (
           <button key={date} className="calendar-day" data-selected={date === selectedDate} data-today={date === today}
             data-outside={view === 'month' && parseDate(date).getMonth() !== cursorDate.getMonth()}
-            onClick={() => onSelect(date)} aria-label={`${date}${datesWithTodos.has(date) ? '，有待办' : ''}`} aria-pressed={date === selectedDate}>
+            onClick={() => onSelect(date)} aria-label={`${date}${datesWithTodos.has(date) ? t(', has tasks', '，有待办') : ''}`} aria-pressed={date === selectedDate}>
             <span>{parseDate(date).getDate()}</span>
             {datesWithTodos.has(date) && <span className="calendar-dot" aria-hidden="true" />}
           </button>

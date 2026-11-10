@@ -1,3 +1,5 @@
+import { useLanguage } from '../lib/language'
+
 interface ReminderDialogProps {
   id: string
   text: string
@@ -5,15 +7,16 @@ interface ReminderDialogProps {
 }
 
 export function ReminderDialog({ id, text, reminderAt }: ReminderDialogProps) {
+  const { locale, t } = useLanguage()
   const dateLabel = Number.isFinite(reminderAt)
-    ? new Date(reminderAt).toLocaleString([], {
+    ? new Date(reminderAt).toLocaleString(locale, {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       })
-    : 'Scheduled reminder'
+    : t('Scheduled reminder', '定时提醒')
 
   return (
     <main className="h-full w-full flex items-center justify-center p-5">
@@ -38,10 +41,10 @@ export function ReminderDialog({ id, text, reminderAt }: ReminderDialogProps) {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: '#93c5fd' }}>
-              Daymark reminder
+              {t('Daymark reminder', 'Daymark 提醒')}
             </p>
             <h1 id="reminder-heading" className="mt-1 text-xl font-semibold tracking-tight">
-              It’s time
+              {t('It’s time', '时间到了')}
             </h1>
           </div>
         </div>
@@ -59,7 +62,7 @@ export function ReminderDialog({ id, text, reminderAt }: ReminderDialogProps) {
           className="mt-7 w-full rounded-xl px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 [--tw-ring-offset-color:#0f172a]"
           style={{ background: '#93c5fd' }}
         >
-          Confirm
+          {t('Confirm', '知道了')}
         </button>
       </section>
     </main>

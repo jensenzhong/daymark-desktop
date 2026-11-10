@@ -8,8 +8,10 @@ import { useTodoStore } from './store/useTodoStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { todayKey } from './lib/date'
 import { ReminderDialog } from './components/ReminderDialog'
+import { useLanguage } from './lib/language'
 
 export default function App() {
+  const { language, t } = useLanguage()
   const todos = useTodoStore((s) => s.todos)
   const loadTodos = useTodoStore((s) => s.load)
   const addTodo = useTodoStore((s) => s.add)
@@ -28,6 +30,10 @@ export default function App() {
   const [autoHeight, setAutoHeight] = useState(true)
   const [drawerMotion, setDrawerMotion] = useState<'open' | 'close' | null>(null)
   const shellRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en'
+  }, [language])
 
   useEffect(() => {
     loadTodos()
@@ -86,7 +92,7 @@ export default function App() {
     return (
       <ReminderDialog
         id={params.get('id') ?? ''}
-        text={params.get('text') ?? 'A scheduled task is due.'}
+        text={params.get('text') ?? t('A scheduled task is due.', '待办提醒时间到了。')}
         reminderAt={Number(params.get('at'))}
       />
     )
@@ -118,8 +124,8 @@ export default function App() {
         <AddTodoInput onAdd={(text) => addTodo(text, selectedDate)} />
         <div
           className="resize-grip"
-          title="Drag to resize"
-          aria-label="Resize window"
+          title={t('Drag to resize', '拖动调整窗口大小')}
+          aria-label={t('Resize window', '调整窗口大小')}
           onPointerDown={(e) => {
             if (e.button !== 0) return
             e.currentTarget.setPointerCapture(e.pointerId)

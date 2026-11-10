@@ -17,6 +17,7 @@ const api: Api = {
   },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
+    setLanguage: (language) => ipcRenderer.invoke('settings:setLanguage', language),
     setTheme: (themeId: string) => ipcRenderer.invoke('settings:setTheme', themeId),
     setCustomTheme: (theme: ThemeConfig) => ipcRenderer.invoke('settings:setCustomTheme', theme),
     setBackgroundOpacity: (opacity: number | null) =>
