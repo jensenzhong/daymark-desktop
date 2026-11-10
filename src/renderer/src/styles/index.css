@@ -238,6 +238,6 @@ body {
 .calendar-day:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .calendar-day[data-outside='true'] { color: var(--color-text-muted); opacity: .55; }
 .calendar-day[data-today='true'] { font-weight: 700; color: var(--color-accent); }
-.calendar-day[data-selected='true'] { color: white; background: var(--color-accent); opacity: 1; }
+.calendar-day[data-selected='true'] { color: var(--color-panel-bg, white); background: var(--color-accent); opacity: 1; }
 .calendar-dot { position: absolute; top: 3px; left: 50%; width: 5px; height: 5px; transform: translateX(-50%); border-radius: 50%; background: #ef625c; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-panel-bg) 75%, transparent); }
 @media (prefers-reduced-motion: reduce) { .calendar-popover { animation-duration: 1ms; } }

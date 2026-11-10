@@ -62,6 +62,66 @@ export const THEME_PRESETS: ThemeConfig[] = [
     radius: 18,
     fontSize: 14,
     fontFamily: FONT_STACK
+  },
+  {
+    id: 'sage-cream',
+    name: 'Sage Cream',
+    background: 'rgba(242, 246, 237, 0.88)',
+    blur: 24,
+    accent: '#3f7059',
+    text: '#20372c',
+    textMuted: '#506a59',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
+  },
+  {
+    id: 'warm-coral',
+    name: 'Warm Coral',
+    background: 'rgba(255, 246, 238, 0.9)',
+    blur: 24,
+    accent: '#b9503f',
+    text: '#3c2b27',
+    textMuted: '#785c52',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
+  },
+  {
+    id: 'glacier-blue',
+    name: 'Glacier Blue',
+    background: 'rgba(235, 244, 250, 0.86)',
+    blur: 24,
+    accent: '#376c96',
+    text: '#1e3549',
+    textMuted: '#4f687d',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
+  },
+  {
+    id: 'midnight-amber',
+    name: 'Midnight Amber',
+    background: 'rgba(37, 34, 31, 0.9)',
+    blur: 24,
+    accent: '#e9b55e',
+    text: '#f8f1e6',
+    textMuted: '#c6b9a5',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
+  },
+  {
+    id: 'dusk-plum',
+    name: 'Dusk Plum',
+    background: 'rgba(50, 40, 49, 0.9)',
+    blur: 24,
+    accent: '#e5aec9',
+    text: '#faf0f5',
+    textMuted: '#cfb9c6',
+    radius: 18,
+    fontSize: 14,
+    fontFamily: FONT_STACK
   }
 ]
 
