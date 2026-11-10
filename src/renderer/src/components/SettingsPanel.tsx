@@ -1,5 +1,5 @@
 import { THEME_PRESETS, resolveTheme } from '@shared/themePresets'
-import type { ThemeConfig } from '@shared/types'
+import type { DisplayMode, ThemeConfig } from '@shared/types'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { hexToRgb, parseRgba, rgbToHex, toRgba } from '../lib/color'
 
@@ -13,6 +13,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme)
   const setBackgroundOpacity = useSettingsStore((s) => s.setBackgroundOpacity)
   const setAutoHeight = useSettingsStore((s) => s.setAutoHeight)
+  const setDisplayMode = useSettingsStore((s) => s.setDisplayMode)
 
   if (!settings) return null
 
@@ -47,6 +48,25 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       </div>
 
       <div className="todo-scroll flex-1 overflow-y-auto px-4 pb-4 space-y-5">
+        <div>
+          <label htmlFor="display-mode" className="block text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
+            显示方式
+          </label>
+          <select
+            id="display-mode"
+            value={settings.displayMode ?? 'fixed'}
+            onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
+            className="todo-input display-mode-select w-full rounded-lg px-3 py-2 text-xs outline-none"
+            style={{ color: 'var(--color-text)', backgroundColor: 'var(--color-panel-bg)' }}
+          >
+            <option value="fixed">固定窗口</option>
+            <option value="drawer">顶部抽屉</option>
+          </select>
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+            抽屉收起后，将鼠标移到清单对应的屏幕顶部细条即可展开；展开时保持置顶。
+          </p>
+        </div>
+
         <div>
           <p className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
             Theme

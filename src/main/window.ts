@@ -1,9 +1,10 @@
 import { BrowserWindow, app, screen } from 'electron'
 import { join } from 'path'
-import type { WindowBounds } from '../shared/types'
-import { readSettings, setAutoHeight, writeWindowBounds } from './store'
+import type { DisplayMode, Settings, WindowBounds } from '../shared/types'
+import { readSettings, setAutoHeight, setDisplayMode, writeWindowBounds } from './store'
 import { isQuitting } from './appState'
 import { getIconPath } from './icon'
+import { createDrawerController, type DrawerController } from './drawer'
 
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 480
@@ -11,6 +12,7 @@ const sizingStates = new WeakMap<
   BrowserWindow,
   { autoHeight: boolean; lastRequestedHeight: number | null }
 >()
+const drawerControllers = new WeakMap<BrowserWindow, DrawerController>()
 
 function clampToVisibleArea(bounds: WindowBounds): WindowBounds {
   const display = screen.getDisplayMatching(bounds)
@@ -33,9 +35,11 @@ function initialBounds(): WindowBounds {
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT
   }
-  const savedBounds = settings.windowBounds
+  const savedBounds = settings.displayMode === 'drawer'
+    ? settings.drawerBounds ?? settings.windowBounds
+    : settings.windowBounds
   const bounds = clampToVisibleArea(savedBounds ?? fallback)
-  writeWindowBounds(bounds)
+  writeWindowBounds(bounds, settings.displayMode ?? 'fixed')
   return bounds
 }
 
@@ -66,11 +70,14 @@ export function createWidgetWindow(): BrowserWindow {
     lastRequestedHeight: null as number | null
   }
   sizingStates.set(win, sizingState)
+  const drawer = createDrawerController(win)
+  drawerControllers.set(win, drawer)
 
-  win.setAlwaysOnTop(readSettings().alwaysOnTop ?? true, 'floating')
+  const settings = readSettings()
+  win.setAlwaysOnTop(settings.displayMode === 'drawer' || (settings.alwaysOnTop ?? true), 'floating')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
-  const persistBounds = (): void => writeWindowBounds(win.getBounds())
+  const persistBounds = (): void => writeWindowBounds(win.getBounds(), readSettings().displayMode ?? 'fixed')
   win.on('moved', persistBounds)
   win.on('will-resize', (_event, nextBounds) => {
     sizingState.lastRequestedHeight = null
@@ -89,7 +96,11 @@ export function createWidgetWindow(): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    win.show()
+    if (readSettings().displayMode === 'drawer') drawer.enable()
+  })
+  win.on('closed', () => drawer.dispose())
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -98,6 +109,30 @@ export function createWidgetWindow(): BrowserWindow {
   }
 
   return win
+}
+
+export function setWidgetDisplayMode(win: BrowserWindow | null, mode: DisplayMode): Settings {
+  const before = readSettings()
+  if (before.displayMode === mode) return before
+  const settings = setDisplayMode(mode, win && !win.isDestroyed() ? win.getBounds() : null)
+  if (!win || win.isDestroyed()) return settings
+
+  const drawer = drawerControllers.get(win)
+  if (mode === 'drawer') {
+    if (settings.drawerBounds) win.setBounds(clampToVisibleArea(settings.drawerBounds))
+    win.setAlwaysOnTop(true, 'floating')
+    drawer?.enable()
+  } else {
+    drawer?.disable()
+    if (settings.windowBounds) win.setBounds(clampToVisibleArea(settings.windowBounds))
+    win.setAlwaysOnTop(settings.alwaysOnTop ?? true, 'floating')
+    if (!win.isVisible()) win.show()
+  }
+  return settings
+}
+
+export function setWidgetEditing(win: BrowserWindow | null, editing: boolean): void {
+  if (win) drawerControllers.get(win)?.setEditing(editing)
 }
 
 export function setWidgetContentHeight(win: BrowserWindow, requestedHeight: number): void {

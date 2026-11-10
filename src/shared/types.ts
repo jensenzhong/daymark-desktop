@@ -28,6 +28,8 @@ export interface WindowBounds {
   height: number
 }
 
+export type DisplayMode = 'fixed' | 'drawer'
+
 export interface Settings {
   themeId: string
   customTheme: ThemeConfig
@@ -35,6 +37,8 @@ export interface Settings {
   backgroundOpacity?: number | null
   alwaysOnTop?: boolean
   autoHeight?: boolean
+  displayMode?: DisplayMode
+  drawerBounds?: WindowBounds | null
 }
 
 export type TodoPatch = Partial<Pick<Todo, 'text' | 'date' | 'order' | 'reminderAt'>>
@@ -56,6 +60,7 @@ export interface SettingsApi {
   setBackgroundOpacity: (opacity: number | null) => Promise<Settings>
   setAlwaysOnTop: (pinned: boolean) => Promise<Settings>
   setAutoHeight: (enabled: boolean) => Promise<Settings>
+  setDisplayMode: (mode: DisplayMode) => Promise<Settings>
 }
 
 export interface WindowApi {
@@ -67,6 +72,8 @@ export interface WindowApi {
   resizeTo: (x: number, y: number) => void
   endResize: () => void
   onAutoHeightChanged: (callback: (enabled: boolean) => void) => () => void
+  setEditing: (editing: boolean) => void
+  onDrawerMotion: (callback: (motion: 'open' | 'close') => void) => () => void
 }
 
 export interface Api {

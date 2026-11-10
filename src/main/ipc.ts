@@ -1,9 +1,9 @@
 import { BrowserWindow, app, ipcMain } from 'electron'
-import type { ThemeConfig, TodoPatch } from '../shared/types'
+import type { DisplayMode, ThemeConfig, TodoPatch } from '../shared/types'
 import * as store from './store'
 import { markQuitting } from './appState'
 import { dismissActiveReminder } from './reminders'
-import { setWidgetAutoHeight, setWidgetContentHeight } from './window'
+import { setWidgetAutoHeight, setWidgetContentHeight, setWidgetDisplayMode, setWidgetEditing } from './window'
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   let resizeStart: { x: number; y: number; width: number; height: number } | null = null
@@ -37,7 +37,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   )
   ipcMain.handle('settings:setAlwaysOnTop', (_e, pinned: boolean) => {
     const settings = store.setAlwaysOnTop(pinned)
-    getWindow()?.setAlwaysOnTop(pinned, 'floating')
+    getWindow()?.setAlwaysOnTop(settings.displayMode === 'drawer' || pinned, 'floating')
     return settings
   })
   ipcMain.handle('settings:setAutoHeight', (_e, enabled: boolean) => {
@@ -46,8 +46,13 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     getWindow()?.webContents.send('window:autoHeight', enabled)
     return settings
   })
+  ipcMain.handle('settings:setDisplayMode', (_e, mode: DisplayMode) => {
+    if (mode !== 'fixed' && mode !== 'drawer') return store.readSettings()
+    return setWidgetDisplayMode(getWindow(), mode)
+  })
 
   ipcMain.on('window:hide', () => getWindow()?.hide())
+  ipcMain.on('window:setEditing', (_e, editing: boolean) => setWidgetEditing(getWindow(), editing === true))
   ipcMain.on('window:beginResize', (_e, x: number, y: number) => {
     const win = getWindow()
     if (!win || !Number.isFinite(x) || !Number.isFinite(y)) return

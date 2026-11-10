@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
-import type { Settings, Todo, ThemeConfig, TodoPatch, WindowBounds } from '../shared/types'
+import type { DisplayMode, Settings, Todo, ThemeConfig, TodoPatch, WindowBounds } from '../shared/types'
 import { THEME_PRESETS, DEFAULT_THEME_ID } from '../shared/themePresets'
 
 const dataDir = (): string => app.getPath('userData')
@@ -109,6 +109,8 @@ function defaultSettings(): Settings {
     windowBounds: null,
     alwaysOnTop: true,
     autoHeight: true,
+    displayMode: 'fixed',
+    drawerBounds: null,
     backgroundOpacity: null
   }
 }
@@ -124,6 +126,8 @@ export function readSettings(): Settings {
     windowBounds: saved.windowBounds ?? null,
     alwaysOnTop: saved.alwaysOnTop ?? true,
     autoHeight: saved.autoHeight ?? true,
+    displayMode: saved.displayMode === 'drawer' ? 'drawer' : 'fixed',
+    drawerBounds: saved.drawerBounds ?? null,
     backgroundOpacity: saved.backgroundOpacity ?? null
   }
 }
@@ -169,11 +173,25 @@ export function setAutoHeight(enabled: boolean): Settings {
 }
 
 let boundsWriteTimer: ReturnType<typeof setTimeout> | null = null
-export function writeWindowBounds(bounds: WindowBounds): void {
+export function setDisplayMode(mode: DisplayMode, bounds: WindowBounds | null): Settings {
+  if (boundsWriteTimer) clearTimeout(boundsWriteTimer)
+  boundsWriteTimer = null
+  const settings = readSettings()
+  if (bounds) {
+    if (settings.displayMode === 'drawer') settings.drawerBounds = bounds
+    else settings.windowBounds = bounds
+  }
+  settings.displayMode = mode
+  writeSettings(settings)
+  return settings
+}
+
+export function writeWindowBounds(bounds: WindowBounds, mode: DisplayMode = 'fixed'): void {
   if (boundsWriteTimer) clearTimeout(boundsWriteTimer)
   boundsWriteTimer = setTimeout(() => {
     const settings = readSettings()
-    settings.windowBounds = bounds
+    if (mode === 'drawer') settings.drawerBounds = bounds
+    else settings.windowBounds = bounds
     writeSettings(settings)
   }, 400)
 }

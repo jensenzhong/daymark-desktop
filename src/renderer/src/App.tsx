@@ -26,6 +26,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [autoHeight, setAutoHeight] = useState(true)
+  const [drawerMotion, setDrawerMotion] = useState<'open' | 'close' | null>(null)
   const shellRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,6 +45,26 @@ export default function App() {
       settings: state.settings ? { ...state.settings, autoHeight: enabled } : state.settings
     }))
   }), [])
+
+  useEffect(() => window.api.window.onDrawerMotion(setDrawerMotion), [])
+
+  useEffect(() => {
+    const reportEditing = (): void => {
+      const element = document.activeElement
+      const input = element instanceof HTMLInputElement &&
+        !['checkbox', 'radio', 'button', 'range', 'color'].includes(element.type)
+      window.api.window.setEditing(Boolean(input || element instanceof HTMLTextAreaElement ||
+        (element instanceof HTMLElement && element.isContentEditable)))
+    }
+    const onBlur = (): void => { queueMicrotask(reportEditing) }
+    document.addEventListener('focusin', reportEditing)
+    document.addEventListener('focusout', onBlur)
+    return () => {
+      document.removeEventListener('focusin', reportEditing)
+      document.removeEventListener('focusout', onBlur)
+      window.api.window.setEditing(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!autoHeight || !settingsLoaded) return
@@ -95,7 +116,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div ref={shellRef} className={`app-shell relative ${autoHeight ? 'auto-height' : 'manual-height'}`}>
+      <div ref={shellRef} className={`app-shell relative ${autoHeight ? 'auto-height' : 'manual-height'} ${drawerMotion ? `drawer-${drawerMotion}` : ''}`}>
         <TitleBar
           onOpenSettings={() => setSettingsOpen(true)}
           pinned={settings?.alwaysOnTop ?? true}

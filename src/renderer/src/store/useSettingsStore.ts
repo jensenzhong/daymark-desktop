@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Settings, ThemeConfig } from '@shared/types'
+import type { DisplayMode, Settings, ThemeConfig } from '@shared/types'
 
 interface SettingsState {
   settings: Settings | null
@@ -10,6 +10,7 @@ interface SettingsState {
   setBackgroundOpacity: (opacity: number | null) => Promise<void>
   setAlwaysOnTop: (pinned: boolean) => Promise<void>
   setAutoHeight: (enabled: boolean) => Promise<void>
+  setDisplayMode: (mode: DisplayMode) => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -37,6 +38,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
   setAutoHeight: async (enabled) => {
     const settings = await window.api.settings.setAutoHeight(enabled)
+    set({ settings })
+  },
+  setDisplayMode: async (mode) => {
+    const settings = await window.api.settings.setDisplayMode(mode)
     set({ settings })
   }
 }))

@@ -49,6 +49,12 @@ body {
   min-height: 0;
 }
 
+.app-shell.drawer-open { animation: drawer-enter 200ms cubic-bezier(.2, .8, .25, 1) both; }
+.app-shell.drawer-close { animation: drawer-leave 180ms ease-in both; }
+@keyframes drawer-enter { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes drawer-leave { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-18px); } }
+@media (prefers-reduced-motion: reduce) { .app-shell.drawer-open, .app-shell.drawer-close { animation-duration: 1ms; } }
+
 .resize-grip {
   position: absolute;
   right: 0;
@@ -92,6 +98,8 @@ body {
   box-shadow: 0 0 0 2px var(--color-accent);
   border-color: transparent;
 }
+
+.display-mode-select option { background: var(--color-panel-bg); color: var(--color-text); }
 
 .checkbox {
   accent-color: var(--color-accent);
