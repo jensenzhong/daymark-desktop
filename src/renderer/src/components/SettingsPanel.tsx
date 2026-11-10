@@ -30,10 +30,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   }
 
   return (
-    <div
-      className="no-drag absolute inset-0 flex flex-col"
-      style={{ background: 'var(--color-panel-bg)' }}
-    >
+    <div className="settings-panel no-drag absolute inset-0 flex flex-col">
       <div className="drag-region flex items-center justify-between px-4 py-3 shrink-0">
         <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
           Settings

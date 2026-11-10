@@ -98,7 +98,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div ref={shellRef} className={`app-shell relative ${autoHeight ? 'auto-height' : 'manual-height'} ${drawerMotion ? `drawer-${drawerMotion}` : ''}`}>
+      <div ref={shellRef} className={`app-shell relative ${autoHeight ? 'auto-height' : 'manual-height'} ${settingsOpen ? 'settings-open' : ''} ${drawerMotion ? `drawer-${drawerMotion}` : ''}`}>
         <TitleBar
           onOpenSettings={() => setSettingsOpen(true)}
           pinned={settings?.alwaysOnTop ?? true}

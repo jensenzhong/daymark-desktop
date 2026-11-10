@@ -29,8 +29,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ settings })
   },
   setBackgroundOpacity: async (opacity) => {
-    const settings = await window.api.settings.setBackgroundOpacity(opacity)
-    set({ settings })
+    set((state) => ({
+      settings: state.settings ? { ...state.settings, backgroundOpacity: opacity } : state.settings
+    }))
+    try {
+      await window.api.settings.setBackgroundOpacity(opacity)
+    } catch (error) {
+      const settings = await window.api.settings.get()
+      set({ settings })
+      throw error
+    }
   },
   setAlwaysOnTop: async (pinned) => {
     const settings = await window.api.settings.setAlwaysOnTop(pinned)

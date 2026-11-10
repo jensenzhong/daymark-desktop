@@ -22,7 +22,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): ReactNode {
       settings.backgroundOpacity ?? themeBackground.a
     )
     root.setProperty('--color-bg', background)
-    // Solid version of the background (alpha → 0.97) for opaque panels like Settings
+    // Opaque background for menus and native select options.
     const { r, g, b } = themeBackground
     root.setProperty('--color-panel-bg', `rgba(${r}, ${g}, ${b}, 0.97)`)
     root.setProperty('--blur', `${theme.blur}px`)
