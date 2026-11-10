@@ -1,12 +1,42 @@
-# Daymark · 桌面待办清单
+<div align="center">
 
-Daymark 是一个轻量的桌面待办应用，主要面向 Windows。它将每日清单、无声提醒和日期日历放在一个可调整大小的桌面窗口中，数据保存在本机。
+<img src="docs/images/overlay.jpg" width="780" alt="Daymark 半透明待办窗口置顶于浏览器页面上方" />
+
+<img src="build/icon.png" width="96" alt="Daymark 标志" />
+
+# Daymark
+
+**一份轻盈的桌面待办，让重要的事始终在眼前。**
+
+透明置顶 · 无声提醒 · 日历与倒计时 · 数据保存在本机
+
+[![下载 Windows](https://img.shields.io/badge/DOWNLOAD-WINDOWS-2864DC?style=for-the-badge)](https://github.com/jensenzhong/daymark-desktop/releases/latest)
+[![下载 macOS](https://img.shields.io/badge/DOWNLOAD-macOS-DF866B?style=for-the-badge)](https://github.com/jensenzhong/daymark-desktop/releases/latest)
+[![许可证 MIT](https://img.shields.io/badge/LICENSE-MIT-727E8E?style=for-the-badge)](LICENSE)
+
+[下载最新版本](https://github.com/jensenzhong/daymark-desktop/releases/latest) · [查看功能](#主要功能) · [开发与预览](#windows-开发与预览)
+
+</div>
+
+---
+
+Daymark 是一个轻量的桌面待办应用。你可以将清单透明置顶在浏览器上方，也可以把它收进屏幕顶部，需要时再展开。任务、提醒和设置保存在你的电脑上，无需登录。
+
+## 目录
+
+- [界面预览](#界面预览)
+- [主要功能](#主要功能)
+- [下载与安装](#下载与安装)
+- [使用方法](#使用方法)
+- [Windows 开发与预览](#windows-开发与预览)
+- [检查与打包](#检查与打包)
+- [数据与备份](#数据与备份)
+- [项目结构](#项目结构)
+- [许可证](#许可证)
 
 ## 界面预览
 
-以下图片使用演示任务和模拟的浏览器页面，展示半透明置顶效果、提醒倒计时和日历。可以在设置中调整窗口透明度；顶部图钉用于切换置顶。日历中的红点表示对应日期有任务。
-
-![Daymark 半透明窗口置顶于浏览器页面上方的示例](docs/images/overlay.jpg)
+首页图片使用演示任务和模拟的浏览器页面，展示半透明置顶效果和提醒倒计时。下图展示日历：红点表示对应日期有任务。
 
 ![Daymark 日历月视图示例](docs/images/calendar.jpg)
 
@@ -21,6 +51,18 @@ Daymark 是一个轻量的桌面待办应用，主要面向 Windows。它将每�
 - **跨天处理**：未完成的过期任务会在程序运行时顺延至当天；已完成任务保留在原日期。
 
 提醒和跨天处理需要应用正在运行。隐藏窗口后，程序仍在系统托盘运行；如果应用当时未运行，下次启动后会处理已经到期的提醒和未完成任务。
+
+## 下载与安装
+
+打开 [最新版本下载页面](https://github.com/jensenzhong/daymark-desktop/releases/latest)，在 Assets 中选择对应安装包：
+
+| 系统 | 安装包 |
+| --- | --- |
+| Windows | `Daymark.Setup...exe` |
+| Mac（苹果 M 系列芯片） | 文件名包含 `arm64` 的 `.dmg` |
+| Mac（Intel 芯片） | 文件名不含 `arm64` 的 `.dmg` |
+
+下载后打开安装包，按照提示完成安装。仓库是私有仓库时，请先登录有访问权限的 GitHub 账号。
 
 ## 使用方法
 
