@@ -18,5 +18,7 @@ jobs:
           node-version: 22
       - name: Check isolated task operations
         run: node --test experiments/tauri-prototype/task-model.test.mjs
+      - name: Generate prototype icons
+        run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
       - name: Check Tauri prototype
         run: cargo check --locked --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml
