@@ -2,6 +2,11 @@ appId: com.daymark.app
 productName: Daymark
 copyright: Copyright © Marius Bungert
 
+electronLanguages:
+  - en
+  - zh-CN
+  - zh-TW
+
 directories:
   output: dist
   buildResources: build

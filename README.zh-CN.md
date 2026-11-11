@@ -120,6 +120,8 @@ npm run build:win    # 构建 Windows NSIS 安装包到 dist/
 
 `build:win` 配置了 x64 和 ARM64 安装包。构建可能需要下载 Electron 和打包工具。macOS 与 Linux 的打包命令保留在 `package.json` 中；本项目的日常开发和预览以 Windows 为主。
 
+从源码构建时需要安装开发依赖。React 和 Zustand 会在构建时编译进界面，安装包不再重复携带它们的原始依赖文件；Electron 语言资源保留英文和中文。
+
 GitHub Actions 在推送 `main` 和创建拉取请求时执行构建；推送 `v*` 标签时，构建成功后会上传安装包并发布 GitHub Release。具体以工作流运行结果为准。
 
 Release 页面提供 Windows 的 `.exe`，以及苹果芯片和 Intel 芯片各一份 Mac `.dmg`。页面中的 Source code 下载项由 GitHub 自动生成。应用目前没有内置自动更新，安装新版本需要手动下载安装包。

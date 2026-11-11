@@ -120,6 +120,8 @@ npm run build:win    # Build Windows NSIS installers into dist/
 
 `build:win` is configured for x64 and ARM64. Packaging may download Electron and build tools. macOS and Linux build commands are also available in `package.json`; routine development and preview focus on Windows.
 
+Install the development dependencies when building from source. React and Zustand are bundled into the renderer during the build, so their original packages are not shipped a second time. Installers retain English and Chinese Electron locale resources.
+
 GitHub Actions runs builds for pushes to `main` and pull requests. Pushing a `v*` tag builds installers and publishes a GitHub Release when the workflow succeeds. Release assets include a Windows `.exe` and separate Mac `.dmg` files for Apple silicon and Intel. GitHub adds source-code downloads automatically.
 
 Daymark does not currently update itself; download and install new releases manually.
