@@ -8,7 +8,7 @@ interface TodoListProps {
   onToggle: (id: string) => void
   onEdit: (id: string, text: string) => void
   onDelete: (id: string) => void
-  onSetReminder: (id: string, reminderAt: number | null) => void
+  onSetReminder: (id: string, reminderAt: number | null) => Promise<void>
   onReorder: (ids: string[]) => void
 }
 

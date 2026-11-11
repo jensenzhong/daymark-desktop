@@ -9,7 +9,7 @@ interface TodoItemProps {
   onToggle: (id: string) => void
   onEdit: (id: string, text: string) => void
   onDelete: (id: string) => void
-  onSetReminder: (id: string, reminderAt: number | null) => void
+  onSetReminder: (id: string, reminderAt: number | null) => Promise<void>
   onDragStart: (id: string) => void
   onDragEnd: () => void
   onDragOver: (id: string) => void
@@ -39,7 +39,9 @@ export function TodoItem({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
   const [reminderOpen, setReminderOpen] = useState(false)
-  const [reminderError, setReminderError] = useState(false)
+  const [reminderError, setReminderError] = useState<'invalid' | 'save' | null>(null)
+  const [reminderValue, setReminderValue] = useState('')
+  const [reminderSaving, setReminderSaving] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuMounted, setMenuMounted] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 })
@@ -199,7 +201,8 @@ export function TodoItem({
             title={todo.reminderAt ? t('Change reminder', '修改提醒') : t('Set reminder', '设置提醒')}
             onClick={() => {
               setMenuOpen(false)
-              setReminderError(false)
+              setReminderError(null)
+              setReminderValue(todo.reminderAt ? toLocalDateTimeInput(todo.reminderAt) : '')
               setReminderOpen((open) => !open)
             }}
           >
@@ -223,20 +226,10 @@ export function TodoItem({
             <input
               type="datetime-local"
               min={toLocalDateTimeInput(Date.now() + 60_000)}
-              value={todo.reminderAt ? toLocalDateTimeInput(todo.reminderAt) : ''}
+              value={reminderValue}
               onChange={(e) => {
-                if (!e.target.value) {
-                  onSetReminder(todo.id, null)
-                  setReminderError(false)
-                  return
-                }
-                const reminderAt = new Date(e.target.value).getTime()
-                if (!Number.isFinite(reminderAt) || reminderAt <= Date.now()) {
-                  setReminderError(true)
-                  return
-                }
-                setReminderError(false)
-                onSetReminder(todo.id, reminderAt)
+                setReminderValue(e.target.value)
+                setReminderError(null)
               }}
               className="block w-full mt-1 rounded-md px-2 py-1 text-xs"
               style={{
@@ -248,7 +241,32 @@ export function TodoItem({
               aria-label={t('Reminder date and time', '提醒日期和时间')}
             />
           </label>
-          {reminderError && <span className="text-xs text-red-400">{t('Choose a future time.', '请选择未来的时间。')}</span>}
+          {reminderError && <span className="text-xs text-red-400" role="alert">{reminderError === 'invalid' ? t('Choose a future time.', '请选择未来的时间。') : t('Could not save reminder. Try again.', '保存失败，请重试。')}</span>}
+          <div className="flex justify-end gap-2 mt-1">
+            <button type="button" disabled={reminderSaving} onClick={() => { setReminderOpen(false); setReminderError(null) }}
+              className="rounded-md px-3 py-1 text-xs hover:bg-white/10" style={{ color: 'var(--color-text-muted)' }}>
+              {t('Cancel', '取消')}
+            </button>
+            <button type="button" disabled={reminderSaving} onClick={async () => {
+              const reminderAt = reminderValue ? new Date(reminderValue).getTime() : NaN
+              if (!Number.isFinite(reminderAt) || reminderAt <= Date.now()) {
+                setReminderError('invalid')
+                return
+              }
+              setReminderSaving(true)
+              try {
+                await onSetReminder(todo.id, reminderAt)
+                setReminderOpen(false)
+                setReminderError(null)
+              } catch {
+                setReminderError('save')
+              } finally {
+                setReminderSaving(false)
+              }
+            }} className="rounded-md px-3 py-1 text-xs font-medium" style={{ background: 'var(--color-accent)', color: 'var(--color-panel-bg)' }}>
+              {t('Confirm', '确认')}
+            </button>
+          </div>
         </div>
       )}
 
