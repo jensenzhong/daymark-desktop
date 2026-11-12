@@ -20,6 +20,9 @@ jobs:
         run: node --test experiments/tauri-prototype/task-model.test.mjs
       - name: Generate prototype icons
         run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: experiments/tauri-prototype/src-tauri -> target
       - name: Build Tauri prototype
         run: cargo build --locked --features custom-protocol --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml
       - name: Check prototype storage

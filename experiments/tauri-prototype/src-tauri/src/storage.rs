@@ -19,6 +19,41 @@ pub struct Data {
     pub todos: Vec<Todo>,
 }
 
+impl Data {
+    pub fn reorder(&mut self, ids: &[String]) -> Result<(), &'static str> {
+        let mut seen = std::collections::HashSet::new();
+        let mut date: Option<&str> = None;
+        for id in ids {
+            if !seen.insert(id) { return Err("Duplicate task ID"); }
+            let todo = self.todos.iter().find(|todo| &todo.id == id).ok_or("Task not found")?;
+            if date.is_some_and(|previous| previous != todo.date.as_str()) { return Err("Tasks must have the same date"); }
+            date = Some(&todo.date);
+        }
+        for (order, id) in ids.iter().enumerate() {
+            self.todos.iter_mut().find(|todo| &todo.id == id).unwrap().order = order as i64;
+        }
+        Ok(())
+    }
+    /// Move unfinished tasks from previous dates to today, preserving their order.
+    pub fn rollover(&mut self, today: &str) -> bool {
+        let mut overdue: Vec<usize> = self.todos.iter().enumerate()
+            .filter(|(_, todo)| !todo.done && todo.date.as_str() < today)
+            .map(|(index, _)| index).collect();
+        overdue.sort_by(|&a, &b| self.todos[a].date.cmp(&self.todos[b].date)
+            .then_with(|| self.todos[a].order.cmp(&self.todos[b].order))
+            .then_with(|| a.cmp(&b)));
+        let mut order = self.todos.iter().filter(|todo| todo.date == today)
+            .map(|todo| todo.order).max().unwrap_or(-1).saturating_add(1);
+        for index in overdue.iter().copied() {
+            let todo = &mut self.todos[index];
+            todo.date = today.to_owned();
+            todo.order = order;
+            order = order.saturating_add(1);
+        }
+        !overdue.is_empty()
+    }
+}
+
 /// Snapshots are committed by linking a fully flushed temporary file to a new
 /// filename. A malformed newest snapshot is an error, never an empty task list.
 pub struct Storage { directory: PathBuf, generation: u64 }
@@ -51,7 +86,7 @@ impl Storage {
         let next = self.generation.checked_add(1).ok_or_else(|| io::Error::other("snapshot generation exhausted"))?;
         let final_path = self.directory.join(format!("tasks-{next:020}.json"));
         let temporary = self.directory.join(format!("tasks-{next:020}.{}.tmp", std::process::id()));
-        let result = (|| {
+        let result: io::Result<()> = (|| {
             let mut file = OpenOptions::new().write(true).create_new(true).open(&temporary)?;
             serde_json::to_writer(&mut file, data).map_err(io::Error::other)?;
             file.flush()?;
@@ -98,5 +133,34 @@ mod tests {
         assert!(matches!(Storage::open(&path), Err(error) if error.kind() == io::ErrorKind::InvalidData));
         assert_eq!(fs::read(path.join("tasks-00000000000000000002.json")).unwrap(), b"broken");
         fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
+    fn stale_writer_cannot_replace_a_committed_snapshot() {
+        let path = directory();
+        let (mut first, data) = Storage::open(&path).unwrap();
+        let (mut second, _) = Storage::open(&path).unwrap();
+        first.save(&data).unwrap();
+        assert_eq!(second.save(&data).unwrap_err().kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(Storage::open(&path).unwrap().1, data);
+        fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
+    fn rollover_moves_only_unfinished_tasks_in_order() {
+        let task = |id: &str, date: &str, order, done| Todo { id: id.into(), text: id.into(), done, date: date.into(), created_at: 1, order, reminder_at: Some(100) };
+        let mut data = Data { todos: vec![task("late", "2026-11-11", 4, false), task("today", "2026-11-12", 0, false), task("early", "2026-11-10", 2, false), task("done", "2026-11-10", 0, true)] };
+        assert!(data.rollover("2026-11-12"));
+        assert_eq!((data.todos[2].order, data.todos[0].order), (1, 2));
+        assert_eq!(data.todos[3].date, "2026-11-10");
+        assert_eq!(data.todos[0].reminder_at, Some(100));
+        assert!(!data.rollover("2026-11-12"));
+    }
+    #[test]
+    fn reordering_validates_all_ids_before_changing_anything() {
+        let task = |id: &str, order| Todo { id: id.into(), text: id.into(), done: false, date: "2026-11-12".into(), created_at: 1, order, reminder_at: None };
+        let mut data = Data { todos: vec![task("a", 0), task("b", 1)] };
+        assert!(data.reorder(&["b".into(), "missing".into()]).is_err());
+        assert_eq!((data.todos[0].order, data.todos[1].order), (0, 1));
+        data.reorder(&["b".into(), "a".into()]).unwrap();
+        assert_eq!((data.todos[0].order, data.todos[1].order), (1, 0));
     }
 }

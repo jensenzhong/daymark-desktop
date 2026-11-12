@@ -3,6 +3,9 @@ const status = document.getElementById('status')
 const taskList = document.getElementById('tasks')
 const taskInput = document.getElementById('task-text')
 let tasks = []
+function localDate(now = new Date()) {
+  return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
+}
 
 function renderTasks() {
   taskList.replaceChildren()
@@ -31,7 +34,7 @@ document.getElementById('task-form').addEventListener('submit', async (event) =>
   const text = taskInput.value.trim()
   if (!text) return
   const now = new Date()
-  const date = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
+  const date = localDate(now)
   const todo = { id: crypto.randomUUID(), text, date, done: false, createdAt: now.getTime(), order: tasks.length, reminderAt: null }
   try {
     tasks = await window.__TAURI__.core.invoke('add_task', { todo })
@@ -41,10 +44,18 @@ document.getElementById('task-form').addEventListener('submit', async (event) =>
   } catch (error) { status.textContent = `保存失败：${error}` }
 })
 
-window.__TAURI__.core.invoke('get_tasks').then((result) => {
-  tasks = result
-  renderTasks()
-}).catch((error) => { status.textContent = `无法读取测试数据：${error}` })
+let lastRolledDate = ''
+async function checkRollover() {
+  const today = localDate()
+  if (today === lastRolledDate) return
+  try {
+    tasks = await window.__TAURI__.core.invoke('rollover_tasks', { today })
+    lastRolledDate = today
+    renderTasks()
+  } catch (error) { status.textContent = `无法读取测试数据：${error}` }
+}
+checkRollover()
+setInterval(checkRollover, 60_000)
 
 button.addEventListener('click', async () => {
   try {

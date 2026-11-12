@@ -9,15 +9,33 @@ use storage::{Data, Storage, Todo};
 
 struct Tasks(Mutex<(Storage, Data)>);
 
+fn valid_date(date: &str) -> bool {
+    date.len() == 10 && date.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() })
+}
+
 #[tauri::command]
 fn get_tasks(state: State<'_, Tasks>) -> Result<Vec<Todo>, String> {
     Ok(state.0.lock().map_err(|e| e.to_string())?.1.todos.clone())
 }
 
 #[tauri::command]
+fn rollover_tasks(state: State<'_, Tasks>, today: String) -> Result<Vec<Todo>, String> {
+    if !valid_date(&today) {
+        return Err("Invalid date".into());
+    }
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    if data.rollover(&today) {
+        state.0.save(&data).map_err(|e| e.to_string())?;
+        state.1 = data;
+    }
+    Ok(state.1.todos.clone())
+}
+
+#[tauri::command]
 fn add_task(state: State<'_, Tasks>, todo: Todo) -> Result<Vec<Todo>, String> {
     let text = todo.text.trim();
-    if text.is_empty() || todo.id.is_empty() { return Err("Task text and ID must not be empty".into()); }
+    if text.is_empty() || todo.id.is_empty() || !valid_date(&todo.date) { return Err("Invalid task text, ID or date".into()); }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
     if data.todos.iter().any(|item| item.id == todo.id) { return Err("Task ID already exists".into()); }
@@ -34,6 +52,55 @@ fn toggle_task(state: State<'_, Tasks>, id: String) -> Result<Vec<Todo>, String>
     let todo = data.todos.iter_mut().find(|todo| todo.id == id).ok_or("Task not found")?;
     todo.done = !todo.done;
     if todo.done { todo.reminder_at = None; }
+    state.0.save(&data).map_err(|e| e.to_string())?;
+    state.1 = data;
+    Ok(state.1.todos.clone())
+}
+
+#[tauri::command]
+fn remove_task(state: State<'_, Tasks>, id: String) -> Result<Vec<Todo>, String> {
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    if !data.todos.iter().any(|todo| todo.id == id) { return Err("Task not found".into()); }
+    data.todos.retain(|todo| todo.id != id);
+    state.0.save(&data).map_err(|e| e.to_string())?;
+    state.1 = data;
+    Ok(state.1.todos.clone())
+}
+
+#[tauri::command]
+fn reorder_tasks(state: State<'_, Tasks>, ids: Vec<String>) -> Result<Vec<Todo>, String> {
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    data.reorder(&ids).map_err(str::to_owned)?;
+    state.0.save(&data).map_err(|e| e.to_string())?;
+    state.1 = data;
+    Ok(state.1.todos.clone())
+}
+
+#[tauri::command]
+fn update_task(state: State<'_, Tasks>, id: String, patch: serde_json::Value) -> Result<Vec<Todo>, String> {
+    let fields = patch.as_object().ok_or("Invalid task update")?;
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    let todo = data.todos.iter_mut().find(|todo| todo.id == id).ok_or("Task not found")?;
+    for (key, value) in fields {
+        match key.as_str() {
+            "text" => {
+                let text = value.as_str().ok_or("Invalid task text")?.trim();
+                if text.is_empty() { return Err("Task text is empty".into()); }
+                todo.text = text.to_owned();
+            }
+            "date" => {
+                let date = value.as_str().ok_or("Invalid task date")?;
+                if !valid_date(date) { return Err("Invalid task date".into()); }
+                todo.date = date.to_owned();
+            }
+            "order" => todo.order = value.as_i64().ok_or("Invalid task order")?,
+            "reminderAt" => todo.reminder_at = if value.is_null() { None } else { Some(value.as_i64().ok_or("Invalid reminder")?) },
+            _ => return Err("Unsupported task update".into()),
+        }
+    }
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     Ok(state.1.todos.clone())
@@ -80,7 +147,7 @@ fn show_main(app: &tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(AlarmState(Arc::new(AtomicBool::new(false))))
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_tasks, add_task, toggle_task])
+        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_tasks, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;
