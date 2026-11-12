@@ -2,3 +2,7 @@ body { margin: 0; font: 15px/1.6 "Segoe UI", sans-serif; background: #f3f7f2; co
 main { padding: 24px; }
 h1 { font-size: 22px; }
 button { padding: 8px 14px; border: 0; border-radius: 8px; background: #3f7059; color: white; cursor: pointer; }
+.input-row { display: flex; gap: 8px; }
+.input-row input { min-width: 0; flex: 1; padding: 8px; border: 1px solid #b6c7ba; border-radius: 8px; }
+ul { padding: 0; list-style: none; }
+li label { display: flex; gap: 8px; align-items: baseline; overflow-wrap: anywhere; }
