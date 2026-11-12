@@ -16,7 +16,7 @@
       "decorations": true,
       "resizable": true
     }],
-    "security": { "csp": "default-src 'self'; style-src 'self'; script-src 'self'" }
+    "security": { "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://ipc.localhost; style-src 'self'; script-src 'self'" }
   },
   "bundle": { "active": false, "icon": ["../../../build/icon.png"] }
 }
