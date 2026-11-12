@@ -35,10 +35,14 @@ document.getElementById('task-form').addEventListener('submit', async (event) =>
   if (!text) return
   const now = new Date()
   const date = localDate(now)
-  const todo = { id: crypto.randomUUID(), text, date, done: false, createdAt: now.getTime(), order: tasks.length, reminderAt: null }
+  const reminderInput = document.getElementById('task-reminder')
+  const reminderAt = reminderInput.value ? new Date(reminderInput.value).getTime() : null
+  if (reminderAt !== null && !Number.isFinite(reminderAt)) { status.textContent = '提醒时间无效。'; return }
+  const todo = { id: crypto.randomUUID(), text, date, done: false, createdAt: now.getTime(), order: tasks.length, reminderAt }
   try {
     tasks = await window.__TAURI__.core.invoke('add_task', { todo })
     taskInput.value = ''
+    reminderInput.value = ''
     status.textContent = '测试待办已保存。'
     renderTasks()
   } catch (error) { status.textContent = `保存失败：${error}` }
@@ -56,6 +60,7 @@ async function checkRollover() {
 }
 checkRollover()
 setInterval(checkRollover, 60_000)
+window.addEventListener('focus', checkRollover)
 
 button.addEventListener('click', async () => {
   try {

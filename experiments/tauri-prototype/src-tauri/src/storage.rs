@@ -20,6 +20,21 @@ pub struct Data {
 }
 
 impl Data {
+    pub fn next_due(&self, now: i64) -> Option<Todo> {
+        self.todos.iter().filter(|todo| !todo.done && todo.reminder_at.is_some_and(|at| at <= now))
+            .min_by_key(|todo| todo.reminder_at).cloned()
+    }
+
+    /// Only clear the exact reminder that was shown; preserve a newly edited time.
+    pub fn acknowledge(&mut self, shown: &Todo) -> bool {
+        if let Some(todo) = self.todos.iter_mut().find(|todo| todo.id == shown.id) {
+            if todo.reminder_at == shown.reminder_at && todo.reminder_at.is_some() {
+                todo.reminder_at = None;
+                return true;
+            }
+        }
+        false
+    }
     pub fn reorder(&mut self, ids: &[String]) -> Result<(), &'static str> {
         let mut seen = std::collections::HashSet::new();
         let mut date: Option<&str> = None;
@@ -162,5 +177,18 @@ mod tests {
         assert_eq!((data.todos[0].order, data.todos[1].order), (0, 1));
         data.reorder(&["b".into(), "a".into()]).unwrap();
         assert_eq!((data.todos[0].order, data.todos[1].order), (1, 0));
+    }
+    #[test]
+    fn reminders_ignore_completed_and_keep_a_newly_edited_time() {
+        let task = |id: &str, at, done| Todo { id: id.into(), text: id.into(), done, date: "2026-11-12".into(), created_at: 1, order: 0, reminder_at: Some(at) };
+        let mut data = Data { todos: vec![task("completed", 1, true), task("later", 3, false), task("first", 2, false)] };
+        let shown = data.next_due(3).unwrap();
+        assert_eq!(shown.id, "first");
+        data.todos[2].reminder_at = Some(10);
+        assert!(!data.acknowledge(&shown));
+        assert_eq!(data.todos[2].reminder_at, Some(10));
+        let next = data.next_due(3).unwrap();
+        assert!(data.acknowledge(&next));
+        assert!(data.next_due(3).is_none());
     }
 }

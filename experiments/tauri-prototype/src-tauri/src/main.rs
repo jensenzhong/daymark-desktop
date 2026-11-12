@@ -3,7 +3,7 @@
 mod storage;
 
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use storage::{Data, Storage, Todo};
 
@@ -106,14 +106,17 @@ fn update_task(state: State<'_, Tasks>, id: String, patch: serde_json::Value) ->
     Ok(state.1.todos.clone())
 }
 
-struct AlarmState(Arc<AtomicBool>);
+struct AlarmState {
+    active: Arc<AtomicBool>,
+    current: Mutex<Option<Todo>>,
+}
 
 #[tauri::command]
 fn schedule_test_reminder(app: tauri::AppHandle, state: State<'_, AlarmState>) -> Result<(), String> {
-    if state.0.swap(true, Ordering::SeqCst) {
+    if state.active.swap(true, Ordering::SeqCst) {
         return Err("A test reminder is already scheduled".into());
     }
-    let active = state.0.clone();
+    let active = state.active.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(15));
         let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
@@ -128,12 +131,64 @@ fn schedule_test_reminder(app: tauri::AppHandle, state: State<'_, AlarmState>) -
 }
 
 #[tauri::command]
-fn dismiss_test_reminder(app: tauri::AppHandle, state: State<'_, AlarmState>) -> Result<(), String> {
+fn dismiss_test_reminder(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("reminder") {
         window.destroy().map_err(|error| error.to_string())?;
     }
-    state.0.store(false, Ordering::SeqCst);
     Ok(())
+}
+
+#[tauri::command]
+fn get_active_reminder(state: State<'_, AlarmState>) -> Result<Option<Todo>, String> {
+    Ok(state.current.lock().map_err(|e| e.to_string())?.clone())
+}
+
+#[tauri::command]
+fn confirm_reminder(app: tauri::AppHandle, alarms: State<'_, AlarmState>, tasks: State<'_, Tasks>) -> Result<(), String> {
+    let shown = alarms.current.lock().map_err(|e| e.to_string())?.clone();
+    if let Some(shown) = shown {
+        let mut tasks = tasks.0.lock().map_err(|e| e.to_string())?;
+        let mut data = tasks.1.clone();
+        if data.acknowledge(&shown) {
+            tasks.0.save(&data).map_err(|e| e.to_string())?;
+            tasks.1 = data;
+        }
+    }
+    let window = app.get_webview_window("reminder").ok_or("Reminder window not found")?;
+    window.destroy().map_err(|e| e.to_string())
+}
+
+fn start_reminder_scheduler(app: tauri::AppHandle) {
+    std::thread::spawn(move || loop {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()
+            .and_then(|time| i64::try_from(time.as_millis()).ok());
+        if let Some(now) = now {
+            let tasks = app.state::<Tasks>();
+            let due = tasks.0.lock().ok().and_then(|state| state.1.next_due(now));
+            if let Some(todo) = due {
+                let alarms = app.state::<AlarmState>();
+                if !alarms.active.swap(true, Ordering::SeqCst) {
+                    if let Ok(mut current) = alarms.current.lock() {
+                        *current = Some(todo);
+                        drop(current);
+                        let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
+                            .title("Daymark reminder").inner_size(340.0, 220.0).center()
+                            .always_on_top(true).resizable(false).build();
+                        match result {
+                            Ok(window) => { let _ = window.set_focus(); }
+                            Err(error) => {
+                                eprintln!("Reminder window failed: {error}");
+                                if let Ok(mut current) = alarms.current.lock() { *current = None; }
+                                alarms.active.store(false, Ordering::SeqCst);
+                            }
+                        }
+                    } else { alarms.active.store(false, Ordering::SeqCst); };
+                }
+            }
+        }
+        // Re-check the wall clock after suspend, resume, or a clock change.
+        std::thread::sleep(Duration::from_secs(5));
+    });
 }
 
 fn show_main(app: &tauri::AppHandle) {
@@ -146,12 +201,13 @@ fn show_main(app: &tauri::AppHandle) {
 
 fn main() {
     tauri::Builder::default()
-        .manage(AlarmState(Arc::new(AtomicBool::new(false))))
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_tasks, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
+        .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
+        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;
             app.manage(Tasks(Mutex::new((storage, data))));
+            start_reminder_scheduler(app.handle().clone());
             let show = MenuItem::with_id(app, "show", "Show Daymark", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit prototype", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
@@ -181,7 +237,9 @@ fn main() {
                 let _ = window.hide();
               }
             } else if window.label() == "reminder" && matches!(event, WindowEvent::Destroyed) {
-                window.state::<AlarmState>().0.store(false, Ordering::SeqCst);
+                let state = window.state::<AlarmState>();
+                if let Ok(mut current) = state.current.lock() { *current = None; }
+                state.active.store(false, Ordering::SeqCst);
             }
         })
         .run(tauri::generate_context!())
