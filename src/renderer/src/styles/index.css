@@ -127,6 +127,22 @@ body {
   background: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 
+.todo-item[data-drop-position]::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: #438ff0;
+  box-shadow: 0 0 4px rgba(38, 132, 255, .3);
+  pointer-events: none;
+}
+
+.todo-item[data-drop-position='before']::after { top: -1px; }
+.todo-item[data-drop-position='after']::after { bottom: -1px; }
+
 .todo-actions {
   position: fixed;
   z-index: 1000;
