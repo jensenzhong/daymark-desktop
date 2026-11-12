@@ -12,9 +12,9 @@ interface TodoItemProps {
   onSetReminder: (id: string, reminderAt: number | null) => Promise<void>
   onDragStart: (id: string) => void
   onDragEnd: () => void
-  onDragOver: (id: string) => void
-  onDrop: (id: string) => void
-  isDropTarget: boolean
+  onDragOver: (id: string, position: 'before' | 'after') => void
+  onDrop: (id: string, position: 'before' | 'after') => void
+  dropPosition: 'before' | 'after' | null
 }
 
 function toLocalDateTimeInput(timestamp: number): string {
@@ -33,7 +33,7 @@ export function TodoItem({
   onDragEnd,
   onDragOver,
   onDrop,
-  isDropTarget
+  dropPosition
 }: TodoItemProps) {
   const { locale, t } = useLanguage()
   const [editing, setEditing] = useState(false)
@@ -116,14 +116,17 @@ export function TodoItem({
 
   return (
     <li
-      className={`group flex flex-col gap-1 pl-3 pr-1 py-1.5 rounded-lg hover:bg-white/5 ${isDropTarget ? 'bg-white/10' : ''}`}
+      className="todo-item group relative flex flex-col gap-1 pl-3 pr-1 py-1.5 rounded-lg hover:bg-white/5"
+      data-drop-position={dropPosition ?? undefined}
       onDragOver={(e) => {
         e.preventDefault()
-        onDragOver(todo.id)
+        const rect = e.currentTarget.getBoundingClientRect()
+        onDragOver(todo.id, e.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
       }}
       onDrop={(e) => {
         e.preventDefault()
-        onDrop(todo.id)
+        const rect = e.currentTarget.getBoundingClientRect()
+        onDrop(todo.id, e.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
       }}
     >
       <div className="flex items-start gap-2">
