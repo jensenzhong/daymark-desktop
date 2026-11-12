@@ -173,7 +173,7 @@ fn start_reminder_scheduler(app: tauri::AppHandle) {
                         drop(current);
                         let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
                             .title("Daymark reminder").inner_size(340.0, 220.0).center()
-                            .always_on_top(true).resizable(false).build();
+                            .always_on_top(true).resizable(false).closable(false).build();
                         match result {
                             Ok(window) => { let _ = window.set_focus(); }
                             Err(error) => {

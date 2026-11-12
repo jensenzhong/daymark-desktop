@@ -25,6 +25,20 @@ function renderTasks() {
     text.textContent = todo.text
     label.append(checkbox, text)
     item.append(label)
+    if (todo.reminderAt) {
+      const reminder = document.createElement('small')
+      reminder.textContent = `提醒：${new Date(todo.reminderAt).toLocaleString()}`
+      item.append(reminder)
+    }
+    const remove = document.createElement('button')
+    remove.type = 'button'
+    remove.textContent = '删除'
+    remove.addEventListener('click', async () => {
+      remove.disabled = true
+      try { tasks = await window.__TAURI__.core.invoke('remove_task', { id: todo.id }); renderTasks() }
+      catch (error) { remove.disabled = false; status.textContent = `删除失败：${error}` }
+    })
+    item.append(remove)
     taskList.append(item)
   }
 }

@@ -6,3 +6,6 @@ button { padding: 8px 14px; border: 0; border-radius: 8px; background: #3f7059; 
 .input-row input { min-width: 0; flex: 1; padding: 8px; border: 1px solid #b6c7ba; border-radius: 8px; }
 ul { padding: 0; list-style: none; }
 li label { display: flex; gap: 8px; align-items: baseline; overflow-wrap: anywhere; }
+li { margin: 10px 0; }
+li small { display: block; color: #506a59; }
+li button { margin-top: 4px; padding: 3px 9px; font-size: 12px; }
