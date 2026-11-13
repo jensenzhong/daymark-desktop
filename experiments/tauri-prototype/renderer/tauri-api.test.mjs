@@ -30,7 +30,7 @@ function createBridge() {
     addEventListener: (name, handler) => listeners.set(name, handler)
   }
   const module = { exports: {} }
-  const document = { addEventListener() {} }
+  const document = { addEventListener: (name, handler) => listeners.set(`document:${name}`, handler) }
   const context = { module, exports: module.exports, window: win, document, setInterval() {}, crypto: { randomUUID }, console, Date, Promise }
   runInNewContext(bundle.outputFiles[0].text, context)
   module.exports.installTauriApi()
@@ -62,4 +62,13 @@ test('a width-only resize preserves height following, while height changes disab
   api.window.endResize()
   await new Promise((resolve) => setImmediate(resolve))
   assert.equal(calls.find((call) => call.command === 'save_settings')?.args.settings.autoHeight, false)
+})
+
+test('header background starts native window movement without capturing button clicks', async () => {
+  const { calls, listeners } = createBridge()
+  const pointerDown = listeners.get('document:pointerdown')
+  pointerDown({ button: 0, target: { closest: (selector) => selector === '.drag-region' ? {} : null } })
+  pointerDown({ button: 0, target: { closest: (selector) => selector === '.drag-region' || selector.includes('button') ? {} : null } })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(calls.filter((call) => call.command === 'start_drag').length, 1)
 })

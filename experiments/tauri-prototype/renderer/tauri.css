@@ -1,0 +1,2 @@
+/* Window movement is handled by the native Tauri bridge, not Electron's CSS region. */
+.drag-region { -webkit-app-region: no-drag !important; }
