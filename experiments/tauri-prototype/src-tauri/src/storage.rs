@@ -136,6 +136,20 @@ impl Storage {
         if result.is_err() { let _ = fs::remove_file(&temporary); }
         result?;
         self.generation = next;
+        // Keep several recovery points without growing forever. Only files
+        // created by this store are considered; cleanup cannot invalidate the
+        // newly committed snapshot and failure leaves extra backups intact.
+        if let Ok(entries) = fs::read_dir(&self.directory) {
+            let mut snapshots: Vec<_> = entries.filter_map(Result::ok).filter_map(|entry| {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                let number = name.strip_prefix("tasks-")?.strip_suffix(".json")?;
+                if number.len() != 20 || !number.bytes().all(|b| b.is_ascii_digit()) { return None; }
+                Some((number.parse::<u64>().ok()?, entry.path()))
+            }).collect();
+            snapshots.sort_by_key(|(generation, _)| std::cmp::Reverse(*generation));
+            for (_, path) in snapshots.into_iter().skip(10) { let _ = fs::remove_file(path); }
+        }
         Ok(())
     }
 }
@@ -178,6 +192,15 @@ mod tests {
         let (mut second, _) = Storage::open(&path).unwrap();
         first.save(&data).unwrap();
         assert_eq!(second.save(&data).unwrap_err().kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(Storage::open(&path).unwrap().1, data);
+        fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
+    fn storage_limits_recovery_snapshots_after_successful_saves() {
+        let path = directory();
+        let (mut storage, data) = Storage::open(&path).unwrap();
+        for _ in 0..12 { storage.save(&data).unwrap(); }
+        assert_eq!(fs::read_dir(&path).unwrap().count(), 10);
         assert_eq!(Storage::open(&path).unwrap().1, data);
         fs::remove_dir_all(path).unwrap();
     }

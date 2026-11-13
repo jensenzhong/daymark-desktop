@@ -1,7 +1,7 @@
 import type { Api, Settings, Todo, TodoPatch } from '../../../src/shared/types'
 import { DEFAULT_THEME_ID, THEME_PRESETS } from '../../../src/shared/themePresets'
 
-type TauriGlobal = { core: { invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> } }
+type TauriGlobal = { core: { invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> }; event: { listen<T>(name: string, callback: (event: { payload: T }) => void): Promise<() => void> } }
 const invoke = <T>(command: string, args?: Record<string, unknown>): Promise<T> =>
   (window as unknown as { __TAURI__: TauriGlobal }).__TAURI__.core.invoke<T>(command, args)
 
@@ -27,6 +27,9 @@ export function installTauriApi(): void {
   const todoListeners = new Set<() => void>()
   const heightListeners = new Set<(enabled: boolean) => void>()
   const drawerListeners = new Set<(motion: 'open' | 'close') => void>()
+  void (window as unknown as { __TAURI__: TauriGlobal }).__TAURI__.event.listen<'open' | 'close'>('drawer-motion', (event) => {
+    drawerListeners.forEach((listener) => listener(event.payload))
+  }).catch((error) => console.error('Drawer event subscription failed', error))
   let resizeActive = false
   let resizeStart: { x: number; y: number; moved: boolean } | null = null
   let resizeQueue = Promise.resolve<unknown>(undefined)

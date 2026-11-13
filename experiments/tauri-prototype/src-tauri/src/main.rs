@@ -200,8 +200,8 @@ fn start_reminder_scheduler(app: tauri::AppHandle) {
                         *current = Some(todo);
                         drop(current);
                         let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
-                            .title("Daymark reminder").inner_size(340.0, 220.0).center()
-                            .always_on_top(true).resizable(false).closable(false).build();
+                            .title("Daymark reminder").inner_size(430.0, 300.0).center()
+                            .decorations(false).transparent(true).always_on_top(true).resizable(false).closable(false).build();
                         match result {
                             Ok(window) => { let _ = window.set_focus(); }
                             Err(error) => {
@@ -230,6 +230,7 @@ fn show_main(app: &tauri::AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
         .manage(desktop::DesktopState::default())
         .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, add_tasks, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks, desktop::hide_main, desktop::quit_app, desktop::set_pinned, desktop::start_drag, desktop::set_content_height, desktop::begin_resize, desktop::resize_to, desktop::end_resize, desktop::set_display_mode])

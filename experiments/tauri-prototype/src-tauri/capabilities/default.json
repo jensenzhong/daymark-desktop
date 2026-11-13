@@ -1,0 +1,6 @@
+{
+  "identifier": "main-window",
+  "description": "Allow the Daymark widget to listen for its window motion events.",
+  "windows": ["main"],
+  "permissions": ["core:event:default"]
+}

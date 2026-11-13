@@ -1,6 +1,6 @@
 use std::sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow, WebviewWindowBuilder, WebviewUrl};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow, WebviewWindowBuilder, WebviewUrl};
 use crate::Tasks;
 
 struct ResizeStart { x: f64, y: f64, width: u32, height: u32, scale: f64 }
@@ -123,7 +123,14 @@ pub fn start_drawer(app: AppHandle) {
             if handle.is_visible().unwrap_or(false) { let _ = handle.hide(); }
             let within = cursor.x >= pos.x as f64 - 2.0 && cursor.x <= (pos.x as i64 + size.width as i64) as f64 + 2.0 && cursor.y >= pos.y as f64 - 2.0 && cursor.y <= (pos.y as i64 + size.height as i64) as f64 + 2.0;
             let grace = state.grace.lock().map(|time| *time).unwrap_or_else(|_| Instant::now());
-            if !within && !at_edge && Instant::now() > grace { let _ = main.hide(); }
+            if !within && !at_edge && Instant::now() > grace {
+                let _ = app.emit_to("main", "drawer-motion", "close");
+                std::thread::sleep(Duration::from_millis(100));
+                let current = app.cursor_position();
+                let still_outside = current.map(|point| point.x < pos.x as f64 - margin || point.x > (pos.x as i64 + size.width as i64) as f64 + margin || point.y < pos.y as f64 - margin || point.y > (pos.y as i64 + size.height as i64) as f64 + margin).unwrap_or(false);
+                if state.drawer.load(Ordering::SeqCst) && still_outside { let _ = main.hide(); }
+                else { let _ = app.emit_to("main", "drawer-motion", "open"); }
+            }
         } else {
             let target_size = PhysicalSize::new(handle_width, (7.0 * scale).round() as u32);
             let target_position = PhysicalPosition::new(edge_x, edge_y);
@@ -134,6 +141,7 @@ pub fn start_drawer(app: AppHandle) {
                 let _ = handle.hide();
                 let _ = main.set_position(PhysicalPosition::new(pos.x, monitor.work_area().position.y));
                 let _ = main.show();
+                let _ = app.emit_to("main", "drawer-motion", "open");
                 if let Ok(mut grace) = state.grace.lock() { *grace = Instant::now() + Duration::from_millis(250); }
             }
         }

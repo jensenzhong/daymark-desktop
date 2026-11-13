@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), {
     name: 'copy-reminder',
     closeBundle() {
-      for (const name of ['reminder.html', 'reminder.js', 'handle.html', 'style.css']) copyFileSync(resolve(root, 'ui', name), resolve(root, 'renderer-dist', name))
+      for (const name of ['reminder.html', 'reminder.js', 'reminder.css', 'handle.html', 'style.css']) copyFileSync(resolve(root, 'ui', name), resolve(root, 'renderer-dist', name))
     }
   }],
   build: { outDir: resolve(root, 'renderer-dist'), emptyOutDir: true }
