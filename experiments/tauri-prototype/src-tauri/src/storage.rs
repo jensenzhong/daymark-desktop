@@ -22,6 +22,12 @@ pub struct Data {
 }
 
 impl Data {
+    pub fn append_batch(&mut self, todos: Vec<Todo>) -> Result<(), &'static str> {
+        let mut updated = self.clone();
+        for todo in todos { updated.append(todo)?; }
+        *self = updated;
+        Ok(())
+    }
     pub fn append(&mut self, mut todo: Todo) -> Result<(), &'static str> {
         todo.text = todo.text.trim().to_owned();
         let date = todo.date.as_str();
@@ -226,5 +232,13 @@ mod tests {
         assert_eq!(data.todos[1].text, "task");
         assert!(data.append(task("new", 0)).is_err());
         assert_eq!(data.todos.len(), 2);
+    }
+    #[test]
+    fn batch_with_invalid_item_does_not_add_any_tasks() {
+        let task = |id: &str| Todo { id: id.into(), text: "test".into(), done: false, date: "2026-11-12".into(), created_at: 1, order: 0, reminder_at: None };
+        let mut data = Data { todos: vec![task("old")], ..Data::default() };
+        let before = data.clone();
+        assert!(data.append_batch(vec![task("new"), task("old")]).is_err());
+        assert_eq!(data, before);
     }
 }

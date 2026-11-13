@@ -62,7 +62,7 @@ fn add_task(state: State<'_, Tasks>, todo: Todo) -> Result<Vec<Todo>, String> {
 fn add_tasks(state: State<'_, Tasks>, todos: Vec<Todo>) -> Result<Vec<Todo>, String> {
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    for todo in todos { data.append(todo).map_err(str::to_owned)?; }
+    data.append_batch(todos).map_err(str::to_owned)?;
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     Ok(state.1.todos.clone())
