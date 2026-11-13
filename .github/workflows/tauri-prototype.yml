@@ -22,6 +22,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Type-check Tauri bridge
         run: npx tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ES2022 --module esnext --moduleResolution bundler experiments/tauri-prototype/renderer/tauri-api.ts src/preload/index.d.ts
+      - name: Test Tauri bridge
+        run: node --test experiments/tauri-prototype/renderer/tauri-api.test.mjs
       - name: Build migrated interface
         run: npx vite build --config experiments/tauri-prototype/vite.config.mjs --configLoader runner
       - name: Generate prototype icons
@@ -29,6 +31,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: experiments/tauri-prototype/src-tauri -> target
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml -- --check
       - name: Build Tauri prototype
         run: cargo build --locked --features custom-protocol --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml
       - name: Check prototype storage

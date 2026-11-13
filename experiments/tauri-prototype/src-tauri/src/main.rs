@@ -1,17 +1,31 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod storage;
 mod desktop;
+mod storage;
 
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use storage::{Data, Storage, Todo};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+};
 
 struct Tasks(Mutex<(Storage, Data)>);
 
 fn valid_date(date: &str) -> bool {
-    date.len() == 10 && date.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() })
+    date.len() == 10
+        && date.bytes().enumerate().all(|(i, b)| {
+            if i == 4 || i == 7 {
+                b == b'-'
+            } else {
+                b.is_ascii_digit()
+            }
+        })
 }
 
 #[tauri::command]
@@ -21,30 +35,59 @@ fn get_tasks(state: State<'_, Tasks>) -> Result<Vec<Todo>, String> {
 
 #[tauri::command]
 fn get_settings(state: State<'_, Tasks>) -> Result<serde_json::Value, String> {
-    Ok(state.0.lock().map_err(|e| e.to_string())?.1.settings.clone())
+    Ok(state
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .1
+        .settings
+        .clone())
 }
 
 #[tauri::command]
-fn save_settings(app: tauri::AppHandle, state: State<'_, Tasks>, settings: serde_json::Value) -> Result<serde_json::Value, String> {
-    if !settings.is_object() { return Err("Invalid settings".into()); }
+fn save_settings(
+    app: tauri::AppHandle,
+    state: State<'_, Tasks>,
+    settings: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    if !settings.is_object() {
+        return Err("Invalid settings".into());
+    }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    let old_language = data.settings.get("language").and_then(|v| v.as_str()).unwrap_or("en").to_owned();
+    let old_language = data
+        .settings
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or("en")
+        .to_owned();
     let mut settings = settings;
     for key in ["windowBounds", "drawerBounds"] {
-        if let Some(saved) = data.settings.get(key) { settings[key] = saved.clone(); }
+        if let Some(saved) = data.settings.get(key) {
+            settings[key] = saved.clone();
+        }
     }
     data.settings = settings.clone();
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     drop(state);
-    if settings.get("language").and_then(|v| v.as_str()).unwrap_or("en") != old_language {
-      if let Some(tray) = app.tray_by_id("daymark-tray") {
-        match tray_menu(&app, settings.get("language").and_then(|v| v.as_str()) == Some("zh")) {
-            Ok(menu) => { let _ = tray.set_menu(Some(menu)); }
-            Err(error) => eprintln!("Could not update tray menu: {error}"),
+    if settings
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or("en")
+        != old_language
+    {
+        if let Some(tray) = app.tray_by_id("daymark-tray") {
+            match tray_menu(
+                &app,
+                settings.get("language").and_then(|v| v.as_str()) == Some("zh"),
+            ) {
+                Ok(menu) => {
+                    let _ = tray.set_menu(Some(menu));
+                }
+                Err(error) => eprintln!("Could not update tray menu: {error}"),
+            }
         }
-      }
     }
     Ok(settings)
 }
@@ -87,9 +130,15 @@ fn add_tasks(state: State<'_, Tasks>, todos: Vec<Todo>) -> Result<Vec<Todo>, Str
 fn toggle_task(state: State<'_, Tasks>, id: String) -> Result<Vec<Todo>, String> {
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    let todo = data.todos.iter_mut().find(|todo| todo.id == id).ok_or("Task not found")?;
+    let todo = data
+        .todos
+        .iter_mut()
+        .find(|todo| todo.id == id)
+        .ok_or("Task not found")?;
     todo.done = !todo.done;
-    if todo.done { todo.reminder_at = None; }
+    if todo.done {
+        todo.reminder_at = None;
+    }
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     Ok(state.1.todos.clone())
@@ -99,7 +148,9 @@ fn toggle_task(state: State<'_, Tasks>, id: String) -> Result<Vec<Todo>, String>
 fn remove_task(state: State<'_, Tasks>, id: String) -> Result<Vec<Todo>, String> {
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    if !data.todos.iter().any(|todo| todo.id == id) { return Err("Task not found".into()); }
+    if !data.todos.iter().any(|todo| todo.id == id) {
+        return Err("Task not found".into());
+    }
     data.todos.retain(|todo| todo.id != id);
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
@@ -117,25 +168,43 @@ fn reorder_tasks(state: State<'_, Tasks>, ids: Vec<String>) -> Result<Vec<Todo>,
 }
 
 #[tauri::command]
-fn update_task(state: State<'_, Tasks>, id: String, patch: serde_json::Value) -> Result<Vec<Todo>, String> {
+fn update_task(
+    state: State<'_, Tasks>,
+    id: String,
+    patch: serde_json::Value,
+) -> Result<Vec<Todo>, String> {
     let fields = patch.as_object().ok_or("Invalid task update")?;
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    let todo = data.todos.iter_mut().find(|todo| todo.id == id).ok_or("Task not found")?;
+    let todo = data
+        .todos
+        .iter_mut()
+        .find(|todo| todo.id == id)
+        .ok_or("Task not found")?;
     for (key, value) in fields {
         match key.as_str() {
             "text" => {
                 let text = value.as_str().ok_or("Invalid task text")?.trim();
-                if text.is_empty() { return Err("Task text is empty".into()); }
+                if text.is_empty() {
+                    return Err("Task text is empty".into());
+                }
                 todo.text = text.to_owned();
             }
             "date" => {
                 let date = value.as_str().ok_or("Invalid task date")?;
-                if !valid_date(date) { return Err("Invalid task date".into()); }
+                if !valid_date(date) {
+                    return Err("Invalid task date".into());
+                }
                 todo.date = date.to_owned();
             }
             "order" => todo.order = value.as_i64().ok_or("Invalid task order")?,
-            "reminderAt" => todo.reminder_at = if value.is_null() { None } else { Some(value.as_i64().ok_or("Invalid reminder")?) },
+            "reminderAt" => {
+                todo.reminder_at = if value.is_null() {
+                    None
+                } else {
+                    Some(value.as_i64().ok_or("Invalid reminder")?)
+                }
+            }
             _ => return Err("Unsupported task update".into()),
         }
     }
@@ -150,19 +219,32 @@ struct AlarmState {
 }
 
 #[tauri::command]
-fn schedule_test_reminder(app: tauri::AppHandle, state: State<'_, AlarmState>) -> Result<(), String> {
+fn schedule_test_reminder(
+    app: tauri::AppHandle,
+    state: State<'_, AlarmState>,
+) -> Result<(), String> {
     if state.active.swap(true, Ordering::SeqCst) {
         return Err("A test reminder is already scheduled".into());
     }
     let active = state.active.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(15));
-        let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
-            .title("Daymark test reminder").inner_size(340.0, 220.0).center()
-            .always_on_top(true).resizable(false).build();
+        let result =
+            WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
+                .title("Daymark test reminder")
+                .inner_size(340.0, 220.0)
+                .center()
+                .always_on_top(true)
+                .resizable(false)
+                .build();
         match result {
-            Ok(window) => { let _ = window.set_focus(); }
-            Err(error) => { eprintln!("Test reminder window failed: {error}"); active.store(false, Ordering::SeqCst); }
+            Ok(window) => {
+                let _ = window.set_focus();
+            }
+            Err(error) => {
+                eprintln!("Test reminder window failed: {error}");
+                active.store(false, Ordering::SeqCst);
+            }
         }
     });
     Ok(())
@@ -182,7 +264,11 @@ fn get_active_reminder(state: State<'_, AlarmState>) -> Result<Option<Todo>, Str
 }
 
 #[tauri::command]
-fn confirm_reminder(app: tauri::AppHandle, alarms: State<'_, AlarmState>, tasks: State<'_, Tasks>) -> Result<(), String> {
+fn confirm_reminder(
+    app: tauri::AppHandle,
+    alarms: State<'_, AlarmState>,
+    tasks: State<'_, Tasks>,
+) -> Result<(), String> {
     let shown = alarms.current.lock().map_err(|e| e.to_string())?.clone();
     if let Some(shown) = shown {
         let mut tasks = tasks.0.lock().map_err(|e| e.to_string())?;
@@ -192,13 +278,17 @@ fn confirm_reminder(app: tauri::AppHandle, alarms: State<'_, AlarmState>, tasks:
             tasks.1 = data;
         }
     }
-    let window = app.get_webview_window("reminder").ok_or("Reminder window not found")?;
+    let window = app
+        .get_webview_window("reminder")
+        .ok_or("Reminder window not found")?;
     window.destroy().map_err(|e| e.to_string())
 }
 
 fn start_reminder_scheduler(app: tauri::AppHandle) {
     std::thread::spawn(move || loop {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .ok()
             .and_then(|time| i64::try_from(time.as_millis()).ok());
         if let Some(now) = now {
             let tasks = app.state::<Tasks>();
@@ -209,18 +299,35 @@ fn start_reminder_scheduler(app: tauri::AppHandle) {
                     if let Ok(mut current) = alarms.current.lock() {
                         *current = Some(todo);
                         drop(current);
-                        let result = WebviewWindowBuilder::new(&app, "reminder", WebviewUrl::App("reminder.html".into()))
-                            .title("Daymark reminder").inner_size(430.0, 300.0).center()
-                            .decorations(false).transparent(true).always_on_top(true).resizable(false).closable(false).build();
+                        let result = WebviewWindowBuilder::new(
+                            &app,
+                            "reminder",
+                            WebviewUrl::App("reminder.html".into()),
+                        )
+                        .title("Daymark reminder")
+                        .inner_size(430.0, 300.0)
+                        .center()
+                        .decorations(false)
+                        .transparent(true)
+                        .always_on_top(true)
+                        .resizable(false)
+                        .closable(false)
+                        .build();
                         match result {
-                            Ok(window) => { let _ = window.set_focus(); }
+                            Ok(window) => {
+                                let _ = window.set_focus();
+                            }
                             Err(error) => {
                                 eprintln!("Reminder window failed: {error}");
-                                if let Ok(mut current) = alarms.current.lock() { *current = None; }
+                                if let Ok(mut current) = alarms.current.lock() {
+                                    *current = None;
+                                }
                                 alarms.active.store(false, Ordering::SeqCst);
                             }
                         }
-                    } else { alarms.active.store(false, Ordering::SeqCst); };
+                    } else {
+                        alarms.active.store(false, Ordering::SeqCst);
+                    };
                 }
             }
         }
@@ -239,8 +346,28 @@ fn show_main(app: &tauri::AppHandle) {
 }
 
 fn tray_menu(app: &tauri::AppHandle, chinese: bool) -> tauri::Result<Menu<tauri::Wry>> {
-    let show = MenuItem::with_id(app, "show", if chinese { "显示窗口" } else { "Show Daymark" }, true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", if chinese { "退出 Daymark" } else { "Quit Daymark" }, true, None::<&str>)?;
+    let show = MenuItem::with_id(
+        app,
+        "show",
+        if chinese {
+            "显示窗口"
+        } else {
+            "Show Daymark"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let quit = MenuItem::with_id(
+        app,
+        "quit",
+        if chinese {
+            "退出 Daymark"
+        } else {
+            "Quit Daymark"
+        },
+        true,
+        None::<&str>,
+    )?;
     Menu::with_items(app, &[&show, &quit])
 }
 
@@ -254,12 +381,18 @@ fn tray_image() -> tauri::Result<tauri::image::Image<'static>> {
         for x in 0..width {
             if rgba[((y * width + x) * 4 + 3) as usize] > 64 {
                 found = true;
-                left = left.min(x); top = top.min(y); right = right.max(x); bottom = bottom.max(y);
+                left = left.min(x);
+                top = top.min(y);
+                right = right.max(x);
+                bottom = bottom.max(y);
             }
         }
     }
-    if !found { return Ok(tauri::image::Image::new_owned(rgba.to_vec(), width, height)); }
-    let side = (((right - left + 1).max(bottom - top + 1) as f64 * 1.08).ceil() as u32).min(width.min(height));
+    if !found {
+        return Ok(tauri::image::Image::new_owned(rgba.to_vec(), width, height));
+    }
+    let side = (((right - left + 1).max(bottom - top + 1) as f64 * 1.08).ceil() as u32)
+        .min(width.min(height));
     let origin_x = ((left + right + 1).saturating_sub(side) / 2).min(width - side);
     let origin_y = ((top + bottom + 1).saturating_sub(side) / 2).min(height - side);
     let target = 32u32;
@@ -278,10 +411,39 @@ fn tray_image() -> tauri::Result<tauri::image::Image<'static>> {
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
-        .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main(app)
+        }))
+        .manage(AlarmState {
+            active: Arc::new(AtomicBool::new(false)),
+            current: Mutex::new(None),
+        })
         .manage(desktop::DesktopState::default())
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, add_tasks, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks, desktop::hide_main, desktop::quit_app, desktop::set_pinned, desktop::start_drag, desktop::set_content_height, desktop::begin_resize, desktop::resize_to, desktop::end_resize, desktop::set_display_mode])
+        .invoke_handler(tauri::generate_handler![
+            schedule_test_reminder,
+            dismiss_test_reminder,
+            get_active_reminder,
+            confirm_reminder,
+            get_tasks,
+            get_settings,
+            save_settings,
+            add_task,
+            add_tasks,
+            toggle_task,
+            remove_task,
+            reorder_tasks,
+            update_task,
+            rollover_tasks,
+            desktop::hide_main,
+            desktop::quit_app,
+            desktop::set_pinned,
+            desktop::start_drag,
+            desktop::set_content_height,
+            desktop::begin_resize,
+            desktop::resize_to,
+            desktop::end_resize,
+            desktop::set_display_mode
+        ])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;
@@ -291,7 +453,19 @@ fn main() {
             desktop::start_drawer(app.handle().clone());
             desktop::start_bounds_saver(app.handle().clone());
             start_reminder_scheduler(app.handle().clone());
-            let chinese = app.state::<Tasks>().0.lock().ok().and_then(|data| data.1.settings.get("language").and_then(|v| v.as_str()).map(|v| v == "zh")).unwrap_or(false);
+            let chinese = app
+                .state::<Tasks>()
+                .0
+                .lock()
+                .ok()
+                .and_then(|data| {
+                    data.1
+                        .settings
+                        .get("language")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v == "zh")
+                })
+                .unwrap_or(false);
             let menu = tray_menu(app.handle(), chinese)?;
             let icon = tray_image()?;
             TrayIconBuilder::with_id("daymark-tray")
@@ -305,9 +479,18 @@ fn main() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
                         if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) { let _ = window.hide(); } else { show_main(tray.app_handle()); }
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                show_main(tray.app_handle());
+                            }
                         }
                     }
                 })
@@ -316,14 +499,18 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
-              if matches!(event, WindowEvent::Moved(_) | WindowEvent::Resized(_)) { desktop::mark_bounds_changed(window.app_handle()); }
-              if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
-              }
+                if matches!(event, WindowEvent::Moved(_) | WindowEvent::Resized(_)) {
+                    desktop::mark_bounds_changed(window.app_handle());
+                }
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             } else if window.label() == "reminder" && matches!(event, WindowEvent::Destroyed) {
                 let state = window.state::<AlarmState>();
-                if let Ok(mut current) = state.current.lock() { *current = None; }
+                if let Ok(mut current) = state.current.lock() {
+                    *current = None;
+                }
                 state.active.store(false, Ordering::SeqCst);
             }
         })
