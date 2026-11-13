@@ -17,6 +17,8 @@ pub struct Todo {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct Data {
     pub todos: Vec<Todo>,
+    #[serde(default)]
+    pub settings: serde_json::Value,
 }
 
 impl Data {
@@ -133,6 +135,7 @@ mod tests {
         data.todos.push(Todo { id: "one".into(), text: "Task".into(), done: false, date: "2026-11-12".into(), created_at: 1, order: 0, reminder_at: Some(100) });
         storage.save(&data).unwrap();
         data.todos[0].text = "Updated".into();
+        data.settings = serde_json::json!({"language": "zh", "alwaysOnTop": true});
         storage.save(&data).unwrap();
         let (_, reopened) = Storage::open(&path).unwrap();
         assert_eq!(reopened, data);
@@ -160,9 +163,19 @@ mod tests {
         fs::remove_dir_all(path).unwrap();
     }
     #[test]
+    fn snapshots_without_settings_remain_readable() {
+        let path = directory();
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("tasks-00000000000000000001.json"), br#"{"todos":[]}"#).unwrap();
+        let (_, data) = Storage::open(&path).unwrap();
+        assert!(data.todos.is_empty());
+        assert!(data.settings.is_null());
+        fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
     fn rollover_moves_only_unfinished_tasks_in_order() {
         let task = |id: &str, date: &str, order, done| Todo { id: id.into(), text: id.into(), done, date: date.into(), created_at: 1, order, reminder_at: Some(100) };
-        let mut data = Data { todos: vec![task("late", "2026-11-11", 4, false), task("today", "2026-11-12", 0, false), task("early", "2026-11-10", 2, false), task("done", "2026-11-10", 0, true)] };
+        let mut data = Data { todos: vec![task("late", "2026-11-11", 4, false), task("today", "2026-11-12", 0, false), task("early", "2026-11-10", 2, false), task("done", "2026-11-10", 0, true)], ..Data::default() };
         assert!(data.rollover("2026-11-12"));
         assert_eq!((data.todos[2].order, data.todos[0].order), (1, 2));
         assert_eq!(data.todos[3].date, "2026-11-10");
@@ -172,7 +185,7 @@ mod tests {
     #[test]
     fn reordering_validates_all_ids_before_changing_anything() {
         let task = |id: &str, order| Todo { id: id.into(), text: id.into(), done: false, date: "2026-11-12".into(), created_at: 1, order, reminder_at: None };
-        let mut data = Data { todos: vec![task("a", 0), task("b", 1)] };
+        let mut data = Data { todos: vec![task("a", 0), task("b", 1)], ..Data::default() };
         assert!(data.reorder(&["b".into(), "missing".into()]).is_err());
         assert_eq!((data.todos[0].order, data.todos[1].order), (0, 1));
         data.reorder(&["b".into(), "a".into()]).unwrap();
@@ -181,7 +194,7 @@ mod tests {
     #[test]
     fn reminders_ignore_completed_and_keep_a_newly_edited_time() {
         let task = |id: &str, at, done| Todo { id: id.into(), text: id.into(), done, date: "2026-11-12".into(), created_at: 1, order: 0, reminder_at: Some(at) };
-        let mut data = Data { todos: vec![task("completed", 1, true), task("later", 3, false), task("first", 2, false)] };
+        let mut data = Data { todos: vec![task("completed", 1, true), task("later", 3, false), task("first", 2, false)], ..Data::default() };
         let shown = data.next_due(3).unwrap();
         assert_eq!(shown.id, "first");
         data.todos[2].reminder_at = Some(10);

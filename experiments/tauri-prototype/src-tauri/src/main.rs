@@ -19,6 +19,22 @@ fn get_tasks(state: State<'_, Tasks>) -> Result<Vec<Todo>, String> {
 }
 
 #[tauri::command]
+fn get_settings(state: State<'_, Tasks>) -> Result<serde_json::Value, String> {
+    Ok(state.0.lock().map_err(|e| e.to_string())?.1.settings.clone())
+}
+
+#[tauri::command]
+fn save_settings(state: State<'_, Tasks>, settings: serde_json::Value) -> Result<serde_json::Value, String> {
+    if !settings.is_object() { return Err("Invalid settings".into()); }
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    data.settings = settings.clone();
+    state.0.save(&data).map_err(|e| e.to_string())?;
+    state.1 = data;
+    Ok(settings)
+}
+
+#[tauri::command]
 fn rollover_tasks(state: State<'_, Tasks>, today: String) -> Result<Vec<Todo>, String> {
     if !valid_date(&today) {
         return Err("Invalid date".into());
@@ -39,7 +55,8 @@ fn add_task(state: State<'_, Tasks>, todo: Todo) -> Result<Vec<Todo>, String> {
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
     if data.todos.iter().any(|item| item.id == todo.id) { return Err("Task ID already exists".into()); }
-    data.todos.push(Todo { text: text.to_owned(), ..todo });
+    let order = data.todos.iter().filter(|item| item.date == todo.date).map(|item| item.order).max().unwrap_or(-1).saturating_add(1);
+    data.todos.push(Todo { text: text.to_owned(), order, ..todo });
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     Ok(state.1.todos.clone())
@@ -202,7 +219,7 @@ fn show_main(app: &tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
+        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;

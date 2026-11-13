@@ -3,6 +3,12 @@ const status = document.getElementById('status')
 const taskList = document.getElementById('tasks')
 const taskInput = document.getElementById('task-text')
 let tasks = []
+let pendingTaskOperation = Promise.resolve()
+function invokeTask(command, args) {
+  const operation = pendingTaskOperation.then(() => window.__TAURI__.core.invoke(command, args))
+  pendingTaskOperation = operation.catch(() => {})
+  return operation
+}
 function localDate(now = new Date()) {
   return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
 }
@@ -18,7 +24,7 @@ function renderTasks() {
     checkbox.checked = todo.done
     checkbox.addEventListener('change', async () => {
       try {
-        tasks = await window.__TAURI__.core.invoke('toggle_task', { id: todo.id })
+        tasks = await invokeTask('toggle_task', { id: todo.id })
         renderTasks()
       } catch (error) { checkbox.checked = todo.done; status.textContent = `保存失败：${error}` }
     })
@@ -35,7 +41,7 @@ function renderTasks() {
     remove.textContent = '删除'
     remove.addEventListener('click', async () => {
       remove.disabled = true
-      try { tasks = await window.__TAURI__.core.invoke('remove_task', { id: todo.id }); renderTasks() }
+      try { tasks = await invokeTask('remove_task', { id: todo.id }); renderTasks() }
       catch (error) { remove.disabled = false; status.textContent = `删除失败：${error}` }
     })
     item.append(remove)
@@ -52,9 +58,10 @@ document.getElementById('task-form').addEventListener('submit', async (event) =>
   const reminderInput = document.getElementById('task-reminder')
   const reminderAt = reminderInput.value ? new Date(reminderInput.value).getTime() : null
   if (reminderAt !== null && !Number.isFinite(reminderAt)) { status.textContent = '提醒时间无效。'; return }
-  const todo = { id: crypto.randomUUID(), text, date, done: false, createdAt: now.getTime(), order: tasks.length, reminderAt }
+  const order = tasks.filter((task) => task.date === date).reduce((max, task) => Math.max(max, task.order), -1) + 1
+  const todo = { id: crypto.randomUUID(), text, date, done: false, createdAt: now.getTime(), order, reminderAt }
   try {
-    tasks = await window.__TAURI__.core.invoke('add_task', { todo })
+    tasks = await invokeTask('add_task', { todo })
     taskInput.value = ''
     reminderInput.value = ''
     status.textContent = '测试待办已保存。'
@@ -67,14 +74,20 @@ async function checkRollover() {
   const today = localDate()
   if (today === lastRolledDate) return
   try {
-    tasks = await window.__TAURI__.core.invoke('rollover_tasks', { today })
+    tasks = await invokeTask('rollover_tasks', { today })
     lastRolledDate = today
     renderTasks()
   } catch (error) { status.textContent = `无法读取测试数据：${error}` }
 }
 checkRollover()
 setInterval(checkRollover, 60_000)
-window.addEventListener('focus', checkRollover)
+window.addEventListener('focus', async () => {
+  await checkRollover()
+  try {
+    tasks = await invokeTask('get_tasks')
+    renderTasks()
+  } catch (error) { status.textContent = `无法读取测试数据：${error}` }
+})
 
 button.addEventListener('click', async () => {
   try {
