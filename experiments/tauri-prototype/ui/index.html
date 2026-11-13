@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Daymark Prototype</title><link rel="stylesheet" href="style.css"></head>
+<body><main><h1>Daymark 试验版</h1><p>测试数据与正式版隔离。关闭窗口后，应用应留在系统托盘中。</p><form id="task-form"><label for="task-text">添加测试待办</label><div class="input-row"><input id="task-text" maxlength="2000" required><button type="submit">添加</button></div><label for="task-reminder">测试提醒时间（可选）</label><input id="task-reminder" type="datetime-local"></form><ul id="tasks"></ul><button id="test-reminder">15 秒后测试提醒</button><p id="status" role="status"></p><p>这是开发中的验证界面；完整界面与抽屉功能尚未接入。</p></main><script src="main.js"></script></body>
+</html>

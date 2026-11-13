@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 out/
 dist/
+experiments/tauri-prototype/renderer-dist/
 *.tsbuildinfo
 .DS_Store
 *.log

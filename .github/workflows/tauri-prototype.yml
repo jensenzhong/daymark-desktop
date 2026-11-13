@@ -1,0 +1,67 @@
+name: Tauri prototype check
+
+on:
+  push:
+    branches: [codex/tauri-prototype]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check isolated task operations
+        run: node --test experiments/tauri-prototype/task-model.test.mjs
+      - name: Install frontend dependencies
+        run: npm ci --ignore-scripts
+      - name: Type-check Tauri bridge
+        run: npx tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ES2022 --module esnext --moduleResolution bundler experiments/tauri-prototype/renderer/tauri-api.ts src/preload/index.d.ts
+      - name: Test Tauri bridge
+        run: node --test experiments/tauri-prototype/renderer/tauri-api.test.mjs
+      - name: Build migrated interface
+        run: npx vite build --config experiments/tauri-prototype/vite.config.mjs --configLoader runner
+      - name: Generate prototype icons
+        run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: experiments/tauri-prototype/src-tauri -> target
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml -- --check
+      - name: Build Tauri prototype
+        run: cargo build --locked --features custom-protocol --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml
+      - name: Check prototype storage
+        run: cargo test --locked --features custom-protocol --manifest-path experiments/tauri-prototype/src-tauri/Cargo.toml
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: daymark-tauri-background-test
+          path: experiments/tauri-prototype/src-tauri/target/debug/daymark-tauri-prototype.exe
+  package:
+    needs: check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npx vite build --config experiments/tauri-prototype/vite.config.mjs --configLoader runner
+      - run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: experiments/tauri-prototype/src-tauri -> target
+      - name: Build Windows preview installer
+        working-directory: experiments/tauri-prototype
+        run: npx --yes @tauri-apps/cli@2 build --config src-tauri/tauri.preview.conf.json --bundles nsis
+      - name: Upload Windows preview installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: daymark-tauri-windows-preview
+          path: experiments/tauri-prototype/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
