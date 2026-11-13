@@ -106,7 +106,7 @@ export function installTauriApi(): void {
     },
     window: {
       hide: () => { void invoke('hide_main') },
-      quit: () => { void invoke('quit_app') },
+      quit: () => { void invoke('quit_app').catch(() => window.alert('Could not save the window position. Please try again.')) },
       acknowledgeReminder: async () => { await invoke('confirm_reminder'); return true },
       setContentHeight: (height) => { if (settingsCache?.autoHeight !== false && !resizeActive) void invoke('set_content_height', { height }) },
       beginResize: (x, y) => { resizeActive = true; resizeStart = { x, y, moved: false, heightMoved: false }; resizeCommand('begin_resize', { x, y }) },

@@ -44,8 +44,10 @@ pub fn hide_main(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn quit_app(app: AppHandle) {
+pub fn quit_app(app: AppHandle) -> Result<(), String> {
+    persist_bounds(&app)?;
     app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -421,6 +423,31 @@ pub fn mark_bounds_changed(app: &AppHandle) {
         .fetch_add(1, Ordering::Relaxed);
 }
 
+fn persist_bounds(app: &AppHandle) -> Result<(), String> {
+    let window = main_window(app)?;
+    let position = window.outer_position().map_err(|e| e.to_string())?;
+    let size = window.inner_size().map_err(|e| e.to_string())?;
+    let tasks = app.state::<Tasks>();
+    let mut state = tasks.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    if !data.settings.is_object() {
+        data.settings = serde_json::json!({});
+    }
+    let field = if data.settings.get("displayMode").and_then(|x| x.as_str()) == Some("drawer") {
+        "drawerBounds"
+    } else {
+        "windowBounds"
+    };
+    let bounds =
+        serde_json::json!({"x":position.x,"y":position.y,"width":size.width,"height":size.height});
+    if data.settings.get(field) != Some(&bounds) {
+        data.settings[field] = bounds;
+        state.0.save(&data).map_err(|e| e.to_string())?;
+        state.1 = data;
+    }
+    Ok(())
+}
+
 pub fn start_bounds_saver(app: AppHandle) {
     std::thread::spawn(move || {
         let mut seen = 0;
@@ -435,32 +462,10 @@ pub fn start_bounds_saver(app: AppHandle) {
             if revision != state.bounds_revision.load(Ordering::Relaxed) {
                 continue;
             }
-            let Some(window) = app.get_webview_window("main") else {
-                continue;
-            };
-            let (Ok(position), Ok(size)) = (window.outer_position(), window.inner_size()) else {
-                continue;
-            };
-            let tasks = app.state::<Tasks>();
-            let Ok(mut state) = tasks.0.lock() else {
-                continue;
-            };
-            let mut data = state.1.clone();
-            if !data.settings.is_object() {
-                data.settings = serde_json::json!({});
-            }
-            let field =
-                if data.settings.get("displayMode").and_then(|x| x.as_str()) == Some("drawer") {
-                    "drawerBounds"
-                } else {
-                    "windowBounds"
-                };
-            data.settings[field] = serde_json::json!({"x":position.x,"y":position.y,"width":size.width,"height":size.height});
-            if let Err(error) = state.0.save(&data) {
+            if let Err(error) = persist_bounds(&app) {
                 eprintln!("Could not save window bounds: {error}");
                 continue;
             }
-            state.1 = data;
             seen = revision;
         }
     });

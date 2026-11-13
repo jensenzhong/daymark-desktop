@@ -475,7 +475,11 @@ fn main() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main(app),
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        if let Err(error) = desktop::quit_app(app.clone()) {
+                            eprintln!("Could not quit: {error}");
+                        }
+                    }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
