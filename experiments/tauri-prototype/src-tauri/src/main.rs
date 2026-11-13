@@ -29,6 +29,7 @@ fn save_settings(app: tauri::AppHandle, state: State<'_, Tasks>, settings: serde
     if !settings.is_object() { return Err("Invalid settings".into()); }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
+    let old_language = data.settings.get("language").and_then(|v| v.as_str()).unwrap_or("en").to_owned();
     let mut settings = settings;
     for key in ["windowBounds", "drawerBounds"] {
         if let Some(saved) = data.settings.get(key) { settings[key] = saved.clone(); }
@@ -37,11 +38,13 @@ fn save_settings(app: tauri::AppHandle, state: State<'_, Tasks>, settings: serde
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     drop(state);
-    if let Some(tray) = app.tray_by_id("daymark-tray") {
+    if settings.get("language").and_then(|v| v.as_str()).unwrap_or("en") != old_language {
+      if let Some(tray) = app.tray_by_id("daymark-tray") {
         match tray_menu(&app, settings.get("language").and_then(|v| v.as_str()) == Some("zh")) {
             Ok(menu) => { let _ = tray.set_menu(Some(menu)); }
             Err(error) => eprintln!("Could not update tray menu: {error}"),
         }
+      }
     }
     Ok(settings)
 }

@@ -38,3 +38,26 @@ jobs:
         with:
           name: daymark-tauri-background-test
           path: experiments/tauri-prototype/src-tauri/target/debug/daymark-tauri-prototype.exe
+  package:
+    needs: check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npx vite build --config experiments/tauri-prototype/vite.config.mjs --configLoader runner
+      - run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: experiments/tauri-prototype/src-tauri -> target
+      - name: Build Windows preview installer
+        working-directory: experiments/tauri-prototype
+        run: npx --yes @tauri-apps/cli@2 build --config src-tauri/tauri.preview.conf.json --bundles nsis
+      - name: Upload Windows preview installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: daymark-tauri-windows-preview
+          path: experiments/tauri-prototype/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
