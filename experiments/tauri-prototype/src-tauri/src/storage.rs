@@ -22,6 +22,19 @@ pub struct Data {
 }
 
 impl Data {
+    pub fn append(&mut self, mut todo: Todo) -> Result<(), &'static str> {
+        todo.text = todo.text.trim().to_owned();
+        let date = todo.date.as_str();
+        if todo.id.is_empty() || todo.text.is_empty() || date.len() != 10 ||
+            !date.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() }) {
+            return Err("Invalid task text, ID or date");
+        }
+        if self.todos.iter().any(|item| item.id == todo.id) { return Err("Task ID already exists"); }
+        todo.order = self.todos.iter().filter(|item| item.date == todo.date)
+            .map(|item| item.order).max().unwrap_or(-1).saturating_add(1);
+        self.todos.push(todo);
+        Ok(())
+    }
     pub fn next_due(&self, now: i64) -> Option<Todo> {
         self.todos.iter().filter(|todo| !todo.done && todo.reminder_at.is_some_and(|at| at <= now))
             .min_by_key(|todo| todo.reminder_at).cloned()
@@ -203,5 +216,15 @@ mod tests {
         let next = data.next_due(3).unwrap();
         assert!(data.acknowledge(&next));
         assert!(data.next_due(3).is_none());
+    }
+    #[test]
+    fn append_uses_date_maximum_order_and_rejects_duplicate_ids() {
+        let task = |id: &str, order| Todo { id: id.into(), text: " task ".into(), done: false, date: "2026-11-12".into(), created_at: 1, order, reminder_at: None };
+        let mut data = Data { todos: vec![task("old", 7)], ..Data::default() };
+        data.append(task("new", 0)).unwrap();
+        assert_eq!(data.todos[1].order, 8);
+        assert_eq!(data.todos[1].text, "task");
+        assert!(data.append(task("new", 0)).is_err());
+        assert_eq!(data.todos.len(), 2);
     }
 }

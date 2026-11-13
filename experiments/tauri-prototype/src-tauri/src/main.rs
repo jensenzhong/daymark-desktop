@@ -50,13 +50,19 @@ fn rollover_tasks(state: State<'_, Tasks>, today: String) -> Result<Vec<Todo>, S
 
 #[tauri::command]
 fn add_task(state: State<'_, Tasks>, todo: Todo) -> Result<Vec<Todo>, String> {
-    let text = todo.text.trim();
-    if text.is_empty() || todo.id.is_empty() || !valid_date(&todo.date) { return Err("Invalid task text, ID or date".into()); }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
-    if data.todos.iter().any(|item| item.id == todo.id) { return Err("Task ID already exists".into()); }
-    let order = data.todos.iter().filter(|item| item.date == todo.date).map(|item| item.order).max().unwrap_or(-1).saturating_add(1);
-    data.todos.push(Todo { text: text.to_owned(), order, ..todo });
+    data.append(todo).map_err(str::to_owned)?;
+    state.0.save(&data).map_err(|e| e.to_string())?;
+    state.1 = data;
+    Ok(state.1.todos.clone())
+}
+
+#[tauri::command]
+fn add_tasks(state: State<'_, Tasks>, todos: Vec<Todo>) -> Result<Vec<Todo>, String> {
+    let mut state = state.0.lock().map_err(|e| e.to_string())?;
+    let mut data = state.1.clone();
+    for todo in todos { data.append(todo).map_err(str::to_owned)?; }
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
     Ok(state.1.todos.clone())
@@ -219,7 +225,7 @@ fn show_main(app: &tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
+        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, add_tasks, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;
