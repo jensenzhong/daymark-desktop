@@ -3,7 +3,7 @@
   "productName": "Daymark Prototype",
   "version": "0.1.0",
   "identifier": "com.daymark.prototype",
-  "build": { "frontendDist": "../ui" },
+  "build": { "frontendDist": "../renderer-dist" },
   "app": {
     "withGlobalTauri": true,
     "windows": [{
@@ -11,12 +11,14 @@
       "title": "Daymark Prototype",
       "width": 360,
       "height": 440,
-      "minWidth": 240,
-      "minHeight": 200,
-      "decorations": true,
+      "minWidth": 180,
+      "minHeight": 140,
+      "decorations": false,
+      "transparent": true,
+      "skipTaskbar": true,
       "resizable": true
     }],
-    "security": { "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://ipc.localhost; style-src 'self'; script-src 'self'" }
+    "security": { "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://ipc.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:" }
   },
   "bundle": { "active": false, "icon": ["../../../build/icon.png"] }
 }

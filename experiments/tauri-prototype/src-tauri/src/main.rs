@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod storage;
+mod desktop;
 
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -28,6 +29,10 @@ fn save_settings(state: State<'_, Tasks>, settings: serde_json::Value) -> Result
     if !settings.is_object() { return Err("Invalid settings".into()); }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
+    let mut settings = settings;
+    for key in ["windowBounds", "drawerBounds"] {
+        if let Some(saved) = data.settings.get(key) { settings[key] = saved.clone(); }
+    }
     data.settings = settings.clone();
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
@@ -216,6 +221,7 @@ fn start_reminder_scheduler(app: tauri::AppHandle) {
 
 fn show_main(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        desktop::mark_shown(app);
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -225,11 +231,16 @@ fn show_main(app: &tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(AlarmState { active: Arc::new(AtomicBool::new(false)), current: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, add_tasks, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks])
+        .manage(desktop::DesktopState::default())
+        .invoke_handler(tauri::generate_handler![schedule_test_reminder, dismiss_test_reminder, get_active_reminder, confirm_reminder, get_tasks, get_settings, save_settings, add_task, add_tasks, toggle_task, remove_task, reorder_tasks, update_task, rollover_tasks, desktop::hide_main, desktop::quit_app, desktop::set_pinned, desktop::start_drag, desktop::set_content_height, desktop::begin_resize, desktop::resize_to, desktop::end_resize, desktop::set_display_mode])
         .setup(|app| {
             let directory = app.path().app_data_dir()?.join("prototype-tasks");
             let (storage, data) = Storage::open(directory)?;
             app.manage(Tasks(Mutex::new((storage, data))));
+            desktop::create_drawer(app)?;
+            desktop::restore(app.handle()).map_err(std::io::Error::other)?;
+            desktop::start_drawer(app.handle().clone());
+            desktop::start_bounds_saver(app.handle().clone());
             start_reminder_scheduler(app.handle().clone());
             let show = MenuItem::with_id(app, "show", "Show Daymark", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit prototype", true, None::<&str>)?;
@@ -255,6 +266,7 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
+              if matches!(event, WindowEvent::Moved(_) | WindowEvent::Resized(_)) { desktop::mark_bounds_changed(window.app_handle()); }
               if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();

@@ -18,6 +18,12 @@ jobs:
           node-version: 22
       - name: Check isolated task operations
         run: node --test experiments/tauri-prototype/task-model.test.mjs
+      - name: Install frontend dependencies
+        run: npm ci --ignore-scripts
+      - name: Type-check Tauri bridge
+        run: npx tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ES2022 --module esnext --moduleResolution bundler experiments/tauri-prototype/renderer/tauri-api.ts src/preload/index.d.ts
+      - name: Build migrated interface
+        run: npx vite build --config experiments/tauri-prototype/vite.config.mjs --configLoader runner
       - name: Generate prototype icons
         run: npx --yes @tauri-apps/cli@2 icon build/icon.png --output experiments/tauri-prototype/src-tauri/icons
       - uses: Swatinem/rust-cache@v2
