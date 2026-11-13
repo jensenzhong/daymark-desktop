@@ -31,10 +31,24 @@ export function installTauriApi(): void {
     drawerListeners.forEach((listener) => listener(event.payload))
   }).catch((error) => console.error('Drawer event subscription failed', error))
   let resizeActive = false
-  let resizeStart: { x: number; y: number; moved: boolean } | null = null
+  let resizeStart: { x: number; y: number; moved: boolean; heightMoved: boolean } | null = null
   let resizeQueue = Promise.resolve<unknown>(undefined)
+  let latestResize: { x: number; y: number } | null = null
+  let resizeScheduled = false
   const resizeCommand = (command: string, args?: Record<string, unknown>): void => {
     resizeQueue = resizeQueue.then(() => invoke(command, args)).catch((error) => { console.error('Window resize failed', error) })
+  }
+  const scheduleResize = (x: number, y: number): void => {
+    latestResize = { x, y }
+    if (resizeScheduled) return
+    resizeScheduled = true
+    resizeQueue = resizeQueue.then(async () => {
+      while (latestResize) {
+        const next = latestResize
+        latestResize = null
+        await invoke('resize_to', next)
+      }
+    }).catch((error) => { console.error('Window resize failed', error) }).finally(() => { resizeScheduled = false })
   }
   let settingsCache: Settings | null = null
 
@@ -95,16 +109,17 @@ export function installTauriApi(): void {
       quit: () => { void invoke('quit_app') },
       acknowledgeReminder: async () => { await invoke('confirm_reminder'); return true },
       setContentHeight: (height) => { if (settingsCache?.autoHeight !== false && !resizeActive) void invoke('set_content_height', { height }) },
-      beginResize: (x, y) => { resizeActive = true; resizeStart = { x, y, moved: false }; resizeCommand('begin_resize', { x, y }) },
+      beginResize: (x, y) => { resizeActive = true; resizeStart = { x, y, moved: false, heightMoved: false }; resizeCommand('begin_resize', { x, y }) },
       resizeTo: (x, y) => {
         if (!resizeActive || !resizeStart) return
         if (Math.abs(x - resizeStart.x) > 2 || Math.abs(y - resizeStart.y) > 2) resizeStart.moved = true
-        if (resizeStart.moved) resizeCommand('resize_to', { x, y })
+        if (Math.abs(y - resizeStart.y) > 2) resizeStart.heightMoved = true
+        if (resizeStart.moved) scheduleResize(x, y)
       },
       endResize: () => {
-        const moved = resizeStart?.moved ?? false
+        const heightMoved = resizeStart?.heightMoved ?? false
         resizeActive = false; resizeStart = null; resizeCommand('end_resize')
-        if (moved) {
+        if (heightMoved) {
           if (settingsCache) settingsCache = { ...settingsCache, autoHeight: false }
           heightListeners.forEach((listener) => listener(false))
           void patchSettings({ autoHeight: false })

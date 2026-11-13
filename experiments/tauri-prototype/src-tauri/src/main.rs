@@ -25,7 +25,7 @@ fn get_settings(state: State<'_, Tasks>) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-fn save_settings(state: State<'_, Tasks>, settings: serde_json::Value) -> Result<serde_json::Value, String> {
+fn save_settings(app: tauri::AppHandle, state: State<'_, Tasks>, settings: serde_json::Value) -> Result<serde_json::Value, String> {
     if !settings.is_object() { return Err("Invalid settings".into()); }
     let mut state = state.0.lock().map_err(|e| e.to_string())?;
     let mut data = state.1.clone();
@@ -36,6 +36,13 @@ fn save_settings(state: State<'_, Tasks>, settings: serde_json::Value) -> Result
     data.settings = settings.clone();
     state.0.save(&data).map_err(|e| e.to_string())?;
     state.1 = data;
+    drop(state);
+    if let Some(tray) = app.tray_by_id("daymark-tray") {
+        match tray_menu(&app, settings.get("language").and_then(|v| v.as_str()) == Some("zh")) {
+            Ok(menu) => { let _ = tray.set_menu(Some(menu)); }
+            Err(error) => eprintln!("Could not update tray menu: {error}"),
+        }
+    }
     Ok(settings)
 }
 
@@ -228,6 +235,44 @@ fn show_main(app: &tauri::AppHandle) {
     }
 }
 
+fn tray_menu(app: &tauri::AppHandle, chinese: bool) -> tauri::Result<Menu<tauri::Wry>> {
+    let show = MenuItem::with_id(app, "show", if chinese { "显示窗口" } else { "Show Daymark" }, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", if chinese { "退出 Daymark" } else { "Quit Daymark" }, true, None::<&str>)?;
+    Menu::with_items(app, &[&show, &quit])
+}
+
+fn tray_image() -> tauri::Result<tauri::image::Image<'static>> {
+    let source = tauri::image::Image::from_bytes(include_bytes!("../../../../build/icon.png"))?;
+    let (width, height) = (source.width(), source.height());
+    let rgba = source.rgba();
+    let (mut left, mut top, mut right, mut bottom) = (width, height, 0, 0);
+    let mut found = false;
+    for y in 0..height {
+        for x in 0..width {
+            if rgba[((y * width + x) * 4 + 3) as usize] > 64 {
+                found = true;
+                left = left.min(x); top = top.min(y); right = right.max(x); bottom = bottom.max(y);
+            }
+        }
+    }
+    if !found { return Ok(tauri::image::Image::new_owned(rgba.to_vec(), width, height)); }
+    let side = (((right - left + 1).max(bottom - top + 1) as f64 * 1.08).ceil() as u32).min(width.min(height));
+    let origin_x = ((left + right + 1).saturating_sub(side) / 2).min(width - side);
+    let origin_y = ((top + bottom + 1).saturating_sub(side) / 2).min(height - side);
+    let target = 32u32;
+    let mut pixels = vec![0; (target * target * 4) as usize];
+    for y in 0..target {
+        for x in 0..target {
+            let sx = origin_x + x * side / target;
+            let sy = origin_y + y * side / target;
+            let from = ((sy * width + sx) * 4) as usize;
+            let to = ((y * target + x) * 4) as usize;
+            pixels[to..to + 4].copy_from_slice(&rgba[from..from + 4]);
+        }
+    }
+    Ok(tauri::image::Image::new_owned(pixels, target, target))
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
@@ -243,11 +288,10 @@ fn main() {
             desktop::start_drawer(app.handle().clone());
             desktop::start_bounds_saver(app.handle().clone());
             start_reminder_scheduler(app.handle().clone());
-            let show = MenuItem::with_id(app, "show", "Show Daymark", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit prototype", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &quit])?;
-            let icon = tauri::image::Image::from_bytes(include_bytes!("../../../../build/icon.png"))?;
-            TrayIconBuilder::new()
+            let chinese = app.state::<Tasks>().0.lock().ok().and_then(|data| data.1.settings.get("language").and_then(|v| v.as_str()).map(|v| v == "zh")).unwrap_or(false);
+            let menu = tray_menu(app.handle(), chinese)?;
+            let icon = tray_image()?;
+            TrayIconBuilder::with_id("daymark-tray")
                 .icon(icon)
                 .tooltip("Daymark Prototype")
                 .menu(&menu)
@@ -259,7 +303,9 @@ fn main() {
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                        show_main(tray.app_handle());
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) { let _ = window.hide(); } else { show_main(tray.app_handle()); }
+                        }
                     }
                 })
                 .build(app)?;

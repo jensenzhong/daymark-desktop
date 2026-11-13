@@ -38,10 +38,18 @@ pub fn set_content_height(app: AppHandle, height: f64) -> Result<(), String> {
     let window = main_window(&app)?;
     let scale = window.scale_factor().map_err(|e| e.to_string())?;
     let size = window.inner_size().map_err(|e| e.to_string())?;
-    let max_height = window.current_monitor().map_err(|e| e.to_string())?
-        .map(|monitor| monitor.work_area().size.height).unwrap_or(2160);
+    let monitor = window.current_monitor().map_err(|e| e.to_string())?;
+    let max_height = monitor.as_ref().map(|m| m.work_area().size.height).unwrap_or(2160);
     let target = ((height.max(140.0) * scale).round() as u32).min(max_height);
-    if size.height.abs_diff(target) > 2 { window.set_size(PhysicalSize::new(size.width, target)).map_err(|e| e.to_string())?; }
+    if size.height.abs_diff(target) > 2 {
+        window.set_size(PhysicalSize::new(size.width, target)).map_err(|e| e.to_string())?;
+        if let (Some(monitor), Ok(position)) = (monitor, window.outer_position()) {
+            let area = monitor.work_area();
+            let max_y = area.position.y.saturating_add(area.size.height.saturating_sub(target) as i32);
+            let y = position.y.clamp(area.position.y, max_y);
+            if y != position.y { window.set_position(PhysicalPosition::new(position.x, y)).map_err(|e| e.to_string())?; }
+        }
+    }
     Ok(())
 }
 
